@@ -1,0 +1,246 @@
+
+.navbar-nav .nav-link.active {
+    background-color: #00ff00 !important;
+    color: black !important;
+    border-color: #00ff00;
+}
+/*Creature style*/
+.creature-row {
+  display: flex;
+  justify-content: center; /* centers them horizontally */
+  align-items: center;
+  gap: 30px; /* space between images */
+  margin-top: 40px;
+}
+
+.creature-row img {
+  width: 200px; /* adjust size as needed */
+  height: auto;
+  border: 2px solid #00ff00;
+  border-radius: 10px;
+  padding: 5px;
+  background-color: black;
+  transition: transform 0.2s;
+}
+
+.creature-row img:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px #00ff00;
+}
+
+/*Card Style*/
+.Card-row {
+  display: flex;
+  justify-content: center; /* centers them horizontally */
+  align-items: center;
+  gap: 30px; /* space between images */
+  margin-top: 40px;
+}
+
+.Card-row img {
+  width: 200px; /* adjust size as needed */
+  height: auto;
+  border: 2px solid #00ff00;
+  border-radius: 10px;
+  padding: 5px;
+  background-color: black;
+  transition: transform 0.2s;
+}
+
+.Card-row img:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px #00ff00;
+}
+
+/* Boss Creature Styling */
+.boss img {
+  width: 300px;
+  height: auto;
+  border: 3px solid #00ff00;
+  border-radius: 10px;
+  background-color: black;
+  padding: 5px;
+  /*box-shadow: 0 0 25px #00ff00;*/
+}
+
+.boss-title {
+  margin-top: 20px;
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 10px #00ff00;
+}
+
+/* Retro table styling */
+.table-wrap {
+  overflow-x: auto; /* mobile safety */
+  margin-top: 10px;
+}
+
+.retro-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  background: #000;
+  border: 2px solid #00ff00;
+  box-shadow: 0 0 12px rgba(0,255,0,0.35);
+}
+
+.retro-table th,
+.retro-table td {
+  border: 1px solid #00ff00;
+  padding: 10px 12px;
+  vertical-align: top;
+}
+
+.retro-table thead th {
+  text-align: left;
+  font-weight: bold;
+  background: rgba(0,255,0,0.08);
+}
+
+.retro-table tbody tr:hover {
+  background: rgba(0,255,0,0.07);
+}
+
+/* Headings spacing on this page */
+h4 {
+  color: #00ff00;
+  margin-top: 24px;
+  text-shadow: 0 0 6px #00ff00;
+}
+
+.map { /* display is set to flex, direction is set to column, align items in the center, leave a 20px gap, margin is set to 30px with an auto scaler, padding is 30px (from the left?)
+        width is 540px, border is 3px and dashed with a green color, border radius is 14px*/
+  display: flex; flex-direction: column; align-items: center; gap: 20px;
+  margin: 30px auto; padding: 30px; width: 540px; border: 3px dashed #00ff00; border-radius: 14px;
+}
+
+.Level {
+  width: 110px; height: 110px; border-radius: 50%; border: 4px dashed #7a7a7a; background:  #000; position: relative; cursor: not-allowed;
+}
+
+.Level.Unlocked {
+  border-color: #00ff00; cursor: pointer; box-shadow: 0 0 12px #00ff00;
+}
+
+.Level.Cleared {
+  border-color: #00ff00; background: rgba(0,255,0,.08);
+}
+
+.dot {
+  width: 4px; height: 30px; background: repeating-linear-gradient(#7a7a7a 0 4px, transparent 4px 8px);
+}
+
+.Battle-Wrap{
+  margin: 20px auto; width: 940px; border: 3px dashed #00ff00; border-radius: 14px;  padding: 18px;
+}
+
+.Hud {
+  display: flex; gap: 30px; color: #00ff00; font-family: 'Courier New', Courier, monospace; margin-bottom: 10px;
+}
+
+.Enemy-Hud{
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  color: #00ff00;
+  font-family: 'Courier New', Courier, monospace;
+  margin-bottom: 10px;
+}
+
+.Player-Hud{
+  margin-top: 20px;
+  border-top: 2px dashed #00ff00;
+  padding-top: 10px;
+}
+
+.Enemy{
+  display: block; margin: 10px auto 20px; width: 220px; filter: drop-shadow(0 0 10px #00ff00);
+}
+
+.Hand{
+  display: flex; justify-content: center; gap: 16px; flex-wrap: wrap;
+}
+
+.Card{
+  width: 165px; height: 260px; border: 2px solid #00ff00; border-radius: 10px; padding: 10px; background: #000; color: #00ff00;
+  font-family: 'Courier New',monospace; transition: transform .15s; box-shadow: .15s;
+}
+
+.Card:Hover{
+  transform: translate(-6px); box-shadow: 0 0 18px #00ff00; cursor: pointer;
+}
+
+.card-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  filter: brightness(0.9) contrast(1.1);
+  transition: filter 0.2s;
+}
+
+.card:hover .card-art {
+  filter: brightness(1.2) contrast(1.3);
+}
+
+.End-Turn {
+  margin: 16px auto 0; display: block; background: #000; color:
+  #00ff00; border: 2px solid #00ff00; padding: 8px 16px;  border-radius: 8px;
+  font-family: 'Courier New', monospace; transition: all 0.25s ease;
+}
+
+/* Normal hover (unchanged) */
+.End-Turn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px #00ff00;
+  cursor: pointer;
+}
+
+/* Highlight when out of energy */
+.End-Turn.Highlight {
+  background: #00ff00;
+  color: #000;
+  box-shadow: 0 0 25px #00ff00;
+  border-color: #00ff00;
+  animation: pulseGlow 1.2s infinite alternate;
+}
+
+@keyframes pulseGlow {
+  0%   { box-shadow: 0 0 10px #00ff00; }
+  100% { box-shadow: 0 0 25px #00ff00; }
+}
+
+.Combat-Log {
+  width: 400px;
+  height: 220px;
+  margin: 20px auto;
+  border: 2px solid #00ff00;
+  border-radius: 8px;
+  padding: 10px;
+  font-family: 'Courier New', monospace; 
+  font-size:  15px;
+  color: #00ff00;
+  background: 0 0 15px rgba(0, 225, blue, 0.3);
+
+  white-space: normal;     /* allows wrapping */
+  word-wrap: break-word;   /* breaks long lines */
+  overflow-wrap: break-word; /* modern version */
+}
+
+.Combat-Log p {
+  margin: 4px 0;
+}
+
+.Combat-Log .Player {
+  color: #00ff00;
+}
+
+.Combat-Log .Enemy {
+  color: #ff3333;
+}
+
+.Combat-Log .System{
+  color: #00bfff;
+}

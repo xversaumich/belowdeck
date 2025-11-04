@@ -1,0 +1,326 @@
+<html>
+	<head>
+		<title>Below Deck - Home</title>
+		<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Below Deck</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+	
+	<!-- Our custom CSS -->
+	<link rel="stylesheet" href="CSS/Style.css">
+
+    <!-- Custom Retro Styling -->
+    <style>
+        body {
+            background-color: black;
+            color: #00ff00; /* Bright green text */
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+
+        .navbar {
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            padding: 5px 15px;
+        }
+
+        .navbar-nav .nav-link {
+            color: #00ff00 !important;
+            border: 2px solid #00ff00;
+            margin: 0 5px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .navbar-nav .nav-link:hover {
+            background-color: #00ff00;
+            color: black !important;
+        }
+
+        h3 {
+            margin-top: 30px;
+            color: #00ff00;
+        }
+
+        p {
+            color: #00ff00;
+            font-size: 1.1rem;
+        }
+
+        .container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-md">
+        <div class="container-fluid">
+            <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="Home.html">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="About Us.html">About Us</a></li>
+                <li class= "nav-item"><a class="nav-link active" href="Play.html">PLAY ></a></li>
+                <li class="nav-item"><a class="nav-link" href="HowToPlay.html">How to Play</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+
+    <!-- Map -->
+<div id="screen-map" class="map">
+    <div class="level locked" data-id="1"></div>
+    <div class="dot"></div>
+    <div class="level locked" data-id="2"></div>
+    <div class="dot"></div>
+    <div class="level locked" data-id="3"></div>
+    <div class="dot"></div>
+    <div class="level locked" data-id="4"></div>
+</div>
+
+
+     <!-- Battle -->
+     <div id = "Screen-Battle" style = "display:none">
+        <div class="Battle-Wrap">
+            <!-- Enemy Hud (top of screen)-->
+            <div class="Enemy-Hud">
+                <div>Level: <span id= "Level-num"></span></div>
+                <div>Enemy HP: <span id="Enemy-hp"></span></div>
+            </div>    
+    <!-- Enemy #2 Sprite-->
+     <img src = "Pictures/Creature2.png" alt="enemy" class="enemy">
+
+    <!-- Hand of Cards-->
+     <div id="Hand" class="hand"></div>
+
+    <!--End Turn button-->
+     <button class = "End-Turn" id="EndTurnBtn"> End Turn</button>
+        </div>
+        <!-- Player Hud (bottom of screen)-->
+      <div class="Player-Hud">
+        <div>Player HP: <span id= "Player-hp"></span></div>
+        <div>Energy: <span id="Energy"></span></div>
+        <div>Strength:  <span id="STR"></span>|
+             Weakness:  <span id="WEAK"></span>|
+             Vulnerable:  <span id="VULN"></span>|
+             Block: <span id="Block"></span>
+        </div>
+      </div>
+     <div id="Combat Log" class="Combat-Log"></div> <!--Combat Log Div-->
+	 </div>
+     
+
+
+     <script>
+    // === SCRIPT STARTS HERE === //
+    const State = {
+        UnlockedLevel: 1,
+        Screen: "Map",
+        LevelID: null
+    };
+
+    function LogMessage(text, type = "System"){
+        const logDiv = document.getElementById('Combat Log');
+        const p = document.createElement('p');
+        p.textContent="> " + text;
+        p.classList.add(type);
+        logDiv.appendChild(p);
+
+        //auto-scroll to latest entry in combat log
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function RenderMap() {
+        document.querySelectorAll('.level').forEach(Element => {
+            const ID = +Element.dataset.id;
+            Element.classList.toggle('unlocked', ID <= State.UnlockedLevel);
+            Element.classList.toggle('locked', ID > State.UnlockedLevel);
+            Element.onclick = (ID <= State.UnlockedLevel) ? () => StartBattle(ID) : null;
+        });
+    }
+
+    function StartBattle(LevelID) {
+        State.Screen = "Battle";
+        State.LevelID = LevelID;
+        document.getElementById('screen-map').style.display = 'none';
+        document.getElementById('Screen-Battle').style.display = 'block';
+        //alert("Starting Battle Level " + LevelID);
+        InitBattle(LevelID);
+    }
+
+    document.addEventListener("DOMContentLoaded", RenderMap);
+
+    const CARDS = [
+        { id: 'Strike', name: "Strike", cost: 1, text: 'Deal 3 damage to enemy target', play: (G) => { G.Enemy.HP -= DamageOut(G, 3); } },
+        { id: 'Reinforce', name: "Reinforce", cost: 1, text: 'Gain 5 Block', play: (G) => { G.Player.Block += 5; } },
+        { id: 'Smash', name: "Smash", cost: 3, text: 'Deal 6 (+2/STR) damage', play: (G) => { G.Enemy.HP -= DamageOut(G, 6 + 2 * G.Player.Str); } },
+        { id: 'Siphon', name: "Siphon", cost: 2, text: 'Deal 3 damage, heal unblocked damage', play: (G) => {
+            const Dealt = DamageOut(G, 3, true);
+            G.Player.HP = Math.min(G.Player.Max, G.Player.HP + Dealt.Heal);
+        }}
+    ];
+
+    const ENEMIES = {
+        1: { Name: 'Grunt', HP: 18, ATK: 3 },
+        2: { Name: 'Slypher', HP: 25, ATK: 5 },
+        3: { Name: 'Savage', HP: 32, ATK: 7 },
+        4: { Name: 'Boss', HP: 41, ATK: 8 }
+    };
+
+    const G = {
+        Player: { Max: 30, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3 },
+        Enemy: null, Turn: 1, Deck: [], Hand: []
+    };
+
+    function InitBattle(Level) {
+    G.Enemy = { ...ENEMIES[Level] };
+    G.Player = { Max: 30, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3 };
+    BuildDeck();
+    DrawHand(5);
+    RenderBattle(Level);
+}
+
+
+    function RenderBattle(Level) {
+    //Enemy Data
+    document.getElementById('Level-num').textContent = Level;
+    document.getElementById('Enemy-hp').textContent = G.Enemy.HP;
+    //Player Data
+    document.getElementById('Player-hp').textContent = `${G.Player.HP}`;
+    document.getElementById('Energy').textContent = G.Player.Energy;
+    document.getElementById('STR').textContent = G.Player.Str;
+    document.getElementById('WEAK').textContent = G.Player.Weak;
+    document.getElementById('VULN').textContent = G.Player.Vuln;
+    document.getElementById('Block').textContent = G.Player.Block;
+    //document.getElementById('Status').textContent =
+    //    `STR: ${G.Player.Str} | WEAK: ${G.Player.Weak} | VULN: ${G.Player.Vuln}`;
+
+    const handDiv = document.getElementById('Hand');
+    
+    handDiv.innerHTML = '';
+
+    G.Hand.forEach((Card, index) => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'Card';
+
+        //Card Artwork
+        const img = document.createElement('img');
+        img.src = `Pictures/${Card.id}.jpg`;
+        img.alt = Card.Name;
+        img.className = 'card-art';
+
+        //on click, play the card
+        cardDiv.onclick = () => PlayCard(index);
+
+        cardDiv.appendChild(img);
+        handDiv.appendChild(cardDiv);
+
+
+    });
+    const EndTurnButton = document.querySelector('.End-Turn');
+
+        if (G.Player.Energy <= 0) {
+             EndTurnButton.classList.add('Highlight');
+        } else {
+        EndTurnButton.classList.remove('Highlight');
+        }
+}
+    document.getElementById('EndTurnBtn').addEventListener('click', EnemyTurn);
+
+    function PlayCard(index){
+
+        const Card = G.Hand[index];
+
+        //check for enough energy to play card
+        if (G.Player.Energy < Card.cost){
+            alert("Not Enough Energy!");
+            return;
+        }
+
+        //for card play in combat log
+        if (Card.id === 'Reinforce') LogMessage("User gained 5 Block", "Player");
+        if (Card.id === 'Strike') LogMessage("You struck the enemy for 3 damage", "Player");
+        if (Card.id === 'Smash') LogMessage("You Smashed the enemy for big damage!", "Player");
+        if (Card.id === 'Siphon') LogMessage("You Siphoned lif from the enemy.", "Player");
+
+        //spend energy and play selected card
+        G.Player.Energy -= Card.cost;
+        Card.play(G); //calls the cards effect from the CARDS array
+
+        //remove card from current hand after its played
+        G.Hand.splice(index, 1);
+
+        //Re-render (recall renderbattle function)
+        RenderBattle(State.LevelID);
+
+        //check if enemy died from last card played
+        if (G.Enemy.HP <= 0){
+            LogMessage("Enemy defeated!", "system");
+            alert("Enemy Defeated!")
+            BackToMap();
+        }
+    }
+
+    function EnemyTurn() {
+    let dmg = G.Enemy.ATK;
+    const blockUsed = Math.min(G.Player.Block, dmg);
+    dmg -= blockUsed;
+    G.Player.Block -= blockUsed;
+    G.Player.HP -= dmg;
+    LogMessage(`Enemy attacked you for ${dmg} damage`, "Enemy");
+
+    if (G.Player.HP <= 0) {
+        LogMessage("you were Defeated!", "System");
+        BackToMap();
+    } else {
+        DrawHand(5);
+        G.Player.Energy = 3;
+        RenderBattle(State.LevelID);
+    }
+}
+
+function BackToMap() {
+    document.getElementById('screen-battle').style.display = 'none';
+    document.getElementById('screen-map').style.display = 'block';
+    RenderMap();
+}
+
+    function BuildDeck() {
+        G.Deck = [...CARDS, ...CARDS].map(C => ({ ...C }));
+    }
+
+    function DrawHand(NumberOfCards) {
+        G.Hand = [];
+        for (let i = 0; i < NumberOfCards; i++) {
+            const Card = G.Deck[Math.floor(Math.random() * G.Deck.length)];
+            G.Hand.push(Card);
+        }
+    }
+
+    // Helper: Damage Calculation
+    function DamageOut(G, Base, Siphon = false) {
+        let Dmg = Base;
+        if (G.Player.Str) Dmg += G.Player.Str;
+        if (G.Player.Weak) Dmg = Math.floor(Dmg * 0.75);
+        let Taken = Math.max(0, Dmg - (G.Enemy.Block || 0));
+        if (G.Enemy && G.Enemy.Vuln) Taken = Math.floor(Taken * 1.5);
+        if (Siphon) return { Dealt: Taken, Heal: Taken };
+        return Taken;
+    }
+
+    const btn = document.getElementById('EndTurnBtn');
+    if (btn && !btn._bound) { btn.addEventListener('click', EnemyTurn); btn._bound = true; }
+
+    // Run map after page loads
+    document.addEventListener("DOMContentLoaded", RenderMap);
+
+     </script>
+
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
