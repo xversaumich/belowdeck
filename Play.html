@@ -74,7 +74,7 @@
     <!-- Page Content -->
 
     <!-- Map -->
-<div id="screen-map" class="map">
+<div id="Screen-Map" class="map">
     <div class="level locked" data-id="1"></div>
     <div class="dot"></div>
     <div class="level locked" data-id="2"></div>
@@ -112,7 +112,7 @@
              Block: <span id="Block"></span>
         </div>
       </div>
-     <div id="Combat Log" class="Combat-Log"></div> <!--Combat Log Div-->
+     <div id="CombatLog" class="Combat-Log"></div> <!--Combat Log Div-->
 	 </div>
      
 
@@ -126,11 +126,15 @@
     };
 
     function LogMessage(text, type = "System"){
-        const logDiv = document.getElementById('Combat Log');
-        const p = document.createElement('p');
+        const logDiv = document.getElementById("CombatLog");
+        const p = document.createElement("p");
         p.textContent="> " + text;
         p.classList.add(type);
         logDiv.appendChild(p);
+
+         // Keep only latest 5 messages
+        const messages = logDiv.querySelectorAll('p');
+        if (messages.length > 5) messages[0].remove();
 
         //auto-scroll to latest entry in combat log
         logDiv.scrollTop = logDiv.scrollHeight;
@@ -139,8 +143,10 @@
     function RenderMap() {
         document.querySelectorAll('.level').forEach(Element => {
             const ID = +Element.dataset.id;
+            //Unlock/Lock level logic
             Element.classList.toggle('unlocked', ID <= State.UnlockedLevel);
             Element.classList.toggle('locked', ID > State.UnlockedLevel);
+            //Click handler
             Element.onclick = (ID <= State.UnlockedLevel) ? () => StartBattle(ID) : null;
         });
     }
@@ -148,9 +154,12 @@
     function StartBattle(LevelID) {
         State.Screen = "Battle";
         State.LevelID = LevelID;
-        document.getElementById('screen-map').style.display = 'none';
-        document.getElementById('Screen-Battle').style.display = 'block';
+        document.getElementById('Screen-Map').style.display = 'none';
+        document.getElementById('Screen-Battle').style.display = '';
         //alert("Starting Battle Level " + LevelID);
+        //clear the combat log
+        const log = document.getElementById('CombatLog');
+        if (log) log.innerHTML = '';
         InitBattle(LevelID);
     }
 
@@ -175,7 +184,7 @@
 
     const G = {
         Player: { Max: 30, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3 },
-        Enemy: null, Turn: 1, Deck: [], Hand: []
+        Enemy: null, Turn: 1, Deck: [], Hand: [], Discard: []
     };
 
     function InitBattle(Level) {
@@ -247,22 +256,26 @@
         if (Card.id === 'Reinforce') LogMessage("User gained 5 Block", "Player");
         if (Card.id === 'Strike') LogMessage("You struck the enemy for 3 damage", "Player");
         if (Card.id === 'Smash') LogMessage("You Smashed the enemy for big damage!", "Player");
-        if (Card.id === 'Siphon') LogMessage("You Siphoned lif from the enemy.", "Player");
+        if (Card.id === 'Siphon') LogMessage("You Siphoned life from the enemy.", "Player");
 
         //spend energy and play selected card
         G.Player.Energy -= Card.cost;
         Card.play(G); //calls the cards effect from the CARDS array
 
         //remove card from current hand after its played
-        G.Hand.splice(index, 1);
+        const playedCard = G.Hand.splice(index, 1)[0];
+        G.Discard.push(playedCard); //move used card into the discard pile
 
         //Re-render (recall renderbattle function)
         RenderBattle(State.LevelID);
 
         //check if enemy died from last card played
         if (G.Enemy.HP <= 0){
-            LogMessage("Enemy defeated!", "system");
+            LogMessage("Enemy defeated!", "System");
             alert("Enemy Defeated!")
+            if (State.LevelID < 4) {
+                State.UnlockedLevel = Math.max(State.UnlockedLevel, State.LevelID + 1);
+            }
             BackToMap();
         }
     }
@@ -279,6 +292,11 @@
         LogMessage("you were Defeated!", "System");
         BackToMap();
     } else {
+        //reset player block
+        if(G.Player.Block >0){
+            LogMessage("Your Block has faded.", "System");
+        }
+        G.Player.Block = 0;
         DrawHand(5);
         G.Player.Energy = 3;
         RenderBattle(State.LevelID);
@@ -286,22 +304,50 @@
 }
 
 function BackToMap() {
-    document.getElementById('screen-battle').style.display = 'none';
-    document.getElementById('screen-map').style.display = 'block';
+    State.Screen = "Map";
+    document.getElementById('Screen-Battle').style.display = 'none';
+    const map = document.getElementById('Screen-Map');
+    map.style.display = ''; //set it to blank so css file takes over for .display = flex
     RenderMap();
 }
 
     function BuildDeck() {
-        G.Deck = [...CARDS, ...CARDS].map(C => ({ ...C }));
-    }
+         G.Deck = [];
+        CARDS.forEach(card => {
+        // Add two copies of each card, or change the i < x number
+        for (let i = 0; i < 3; i++) {
+             G.Deck.push({ ...card });
+            }
+        });
 
-    function DrawHand(NumberOfCards) {
-        G.Hand = [];
-        for (let i = 0; i < NumberOfCards; i++) {
-            const Card = G.Deck[Math.floor(Math.random() * G.Deck.length)];
-            G.Hand.push(Card);
+        // Shuffle the deck (Fisher–Yates shuffle)
+    for (let i = G.Deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [G.Deck[i], G.Deck[j]] = [G.Deck[j], G.Deck[i]];
         }
     }
+
+    function DrawHand(target = 5) {
+  // keep current cards, only fill up to target
+  while (G.Hand.length < target) {
+
+    // If deck is empty, reshuffle discard
+    if (G.Deck.length === 0) {
+      if (G.Discard.length === 0) break; // no cards to draw at all
+      G.Deck = G.Discard.sort(() => Math.random() - 0.5);
+      G.Discard = [];
+      LogMessage("Reshuffling discard pile into deck.", "system");
+    }
+
+    const drawnCard = G.Deck.pop();
+    if (drawnCard && drawnCard.id) {
+      G.Hand.push(drawnCard);
+    } else {
+      console.warn("Invalid card drawn:", drawnCard);
+      break;
+    }
+  }
+}
 
     // Helper: Damage Calculation
     function DamageOut(G, Base, Siphon = false) {

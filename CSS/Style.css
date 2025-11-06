@@ -207,14 +207,10 @@ h4 {
   animation: pulseGlow 1.2s infinite alternate;
 }
 
-@keyframes pulseGlow {
-  0%   { box-shadow: 0 0 10px #00ff00; }
-  100% { box-shadow: 0 0 25px #00ff00; }
-}
 
 .Combat-Log {
   width: 400px;
-  height: 220px;
+  height: 320px;
   margin: 20px auto;
   border: 2px solid #00ff00;
   border-radius: 8px;
@@ -223,18 +219,21 @@ h4 {
   font-size:  15px;
   color: #00ff00;
   background: 0 0 15px rgba(0, 225, blue, 0.3);
-
   white-space: normal;     /* allows wrapping */
   word-wrap: break-word;   /* breaks long lines */
-  overflow-wrap: break-word; /* modern version */
+  overflow-wrap: break-word;
 }
 
 .Combat-Log p {
   margin: 4px 0;
+  opacity: 0; /*combat log message first appears invsible*/
+  transform: translateY(4px); /*message slowly slides up*/
+  animation: logFadeIn 0.6s ease forwards;
 }
 
 .Combat-Log .Player {
   color: #00ff00;
+    text-shadow: 0 0 06px #00ff00;
 }
 
 .Combat-Log .Enemy {
@@ -243,4 +242,27 @@ h4 {
 
 .Combat-Log .System{
   color: #00bfff;
+}
+
+@keyframes pulseGlow {
+  0%   { box-shadow: 0 0 10px #00ff00; }
+  100% { box-shadow: 0 0 25px #00ff00; }
+}
+
+@keyframes logFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+    filter: brightness(0.5);
+  }
+  50% {
+    opacity: 0.8;
+    filter: brightness(1.2);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: brightness(1);
+  }
+  
 }

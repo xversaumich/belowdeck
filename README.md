@@ -3,7 +3,7 @@ Repo for ITI 200 Team 11 project
 
 ## Game Mechanics##
 - Block needs to be round based
-- scrolling combat log
+- Scrolling combat log
 
 
 
@@ -12,4 +12,4 @@ Repo for ITI 200 Team 11 project
 - Background audio
 
 ## Assets ##
-- finish the 10 cards
+- Finish the 10 cards
