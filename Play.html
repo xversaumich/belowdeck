@@ -11,6 +11,10 @@
 	<!-- Our custom CSS -->
 	<link rel="stylesheet" href="CSS/Style.css">
 
+    <!-- bootstrap icon -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+
 
     <!-- commit test by reece -->
 
@@ -87,14 +91,22 @@
 
      <!-- Battle -->
      <div id = "Screen-Battle" style = "display:none">
+        <button class="Back-To-Map" id="BackToMapBtn"> < Map</button>
         <div class="Battle-Wrap">
             <!-- Enemy Hud (top of screen)-->
             <div class="Enemy-Hud">
+                <div>Creature: <span id= "Name"></span></div>
                 <div>Level: <span id= "Level-num"></span></div>
                 <div>Enemy HP: <span id="Enemy-hp"></span></div>
+                <div>Block: <span id= "Enemy-Block"></span></div>
             </div>    
-    <!-- Enemy #2 Sprite-->
-     <img src = "Pictures/Creature2.png" alt="enemy" class="enemy">
+
+
+    <!--Enemy Intent Display (attack/defend) -->
+    <div id= "Enemy-Intent" class="Enemy-Intent"></div>
+
+    <!--Enemy art div area-->
+    <img id="EnemyImage" src="Pictures/Creature1.png" alt="enemy" class="enemy">
 
     <!-- Hand of Cards-->
      <div id="Hand" class="hand"></div>
@@ -170,16 +182,18 @@
         { id: 'Reinforce', name: "Reinforce", cost: 1, text: 'Gain 5 Block', play: (G) => { G.Player.Block += 5; } },
         { id: 'Smash', name: "Smash", cost: 3, text: 'Deal 6 (+2/STR) damage', play: (G) => { G.Enemy.HP -= DamageOut(G, 6 + 2 * G.Player.Str); } },
         { id: 'Siphon', name: "Siphon", cost: 2, text: 'Deal 3 damage, heal unblocked damage', play: (G) => {
-            const Dealt = DamageOut(G, 3, true);
-            G.Player.HP = Math.min(G.Player.Max, G.Player.HP + Dealt.Heal);
+            const Result = DamageOut(G, 3, true);
+            G.Enemy.HP -= Result.Dealt;
+            G.Player.HP = Math.min(G.Player.Max, G.Player.HP + Result.Heal);
+            LogMessage(`> You siphoned ${Result.Dealt} HP from the enemy!`, 'green');
         }}
     ];
 
     const ENEMIES = {
-        1: { Name: 'Grunt', HP: 18, ATK: 3 },
-        2: { Name: 'Slypher', HP: 25, ATK: 5 },
-        3: { Name: 'Savage', HP: 32, ATK: 7 },
-        4: { Name: 'Boss', HP: 41, ATK: 8 }
+        1: { Name: 'Grunt', HP: 18, ATK: 3, Block: 0 },
+        2: { Name: 'Slypher', HP: 25, ATK: 5, Block: 0 },
+        3: { Name: 'Savage', HP: 32, ATK: 7, Block: 0 },
+        4: { Name: 'Boss', HP: 41, ATK: 8, Block: 0 }
     };
 
     const G = {
@@ -189,7 +203,10 @@
 
     function InitBattle(Level) {
     G.Enemy = { ...ENEMIES[Level] };
-    G.Player = { Max: 30, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3 };
+    G.Player = { Max: 99, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3 };
+    //load correct image for creature
+    const EnemyImage = document.getElementById("EnemyImage");
+    EnemyImage.src = `Pictures/Creature${Level}.png`;
     BuildDeck();
     DrawHand(5);
     RenderBattle(Level);
@@ -200,6 +217,8 @@
     //Enemy Data
     document.getElementById('Level-num').textContent = Level;
     document.getElementById('Enemy-hp').textContent = G.Enemy.HP;
+    document.getElementById('Enemy-Block').textContent = G.Enemy.Block;
+    document.getElementById('Name').textContent = G.Enemy.Name;
     //Player Data
     document.getElementById('Player-hp').textContent = `${G.Player.HP}`;
     document.getElementById('Energy').textContent = G.Player.Energy;
@@ -256,7 +275,7 @@
         if (Card.id === 'Reinforce') LogMessage("User gained 5 Block", "Player");
         if (Card.id === 'Strike') LogMessage("You struck the enemy for 3 damage", "Player");
         if (Card.id === 'Smash') LogMessage("You Smashed the enemy for big damage!", "Player");
-        if (Card.id === 'Siphon') LogMessage("You Siphoned life from the enemy.", "Player");
+        //if (Card.id === 'Siphon') LogMessage(`You Siphoned ${Result.Dealt} HP from the enemy.`, 'green');
 
         //spend energy and play selected card
         G.Player.Energy -= Card.cost;
@@ -281,15 +300,41 @@
     }
 
     function EnemyTurn() {
-    let dmg = G.Enemy.ATK;
-    const blockUsed = Math.min(G.Player.Block, dmg);
-    dmg -= blockUsed;
-    G.Player.Block -= blockUsed;
-    G.Player.HP -= dmg;
-    LogMessage(`Enemy attacked you for ${dmg} damage`, "Enemy");
+
+    const Action = Math.random();
+    const intentDiv = document.getElementById("Enemy-Intent");
+     intentDiv.innerHTML = "";
+
+    //let action 0.x be the percent chance for attack
+    if (Action < 0.60) //60% chance to attack player
+    {
+        let dmg = G.Enemy.ATK;
+        const blockUsed = Math.min(G.Player.Block, dmg);
+        dmg -= blockUsed;
+        G.Player.Block -= blockUsed;
+        G.Player.HP -= dmg;
+        intentDiv.innerHTML = '<i class="bi bi-fire"></i>';
+        intentDiv.className = "Enemy-Intent Attack";
+        LogMessage(`Enemy attacked you for ${dmg} damage`, "Enemy");
+    }
+    else{ //40% chance to defend
+        const GainBlock = Math.floor(G.Enemy.ATK /2) + 2; //EnemyBlock = enemys attack/2 = result + 2
+        G.Enemy.Block = (G.Enemy.Block || 0) + GainBlock;
+        intentDiv.innerHTML = '<i class="bi bi-shield-plus"></i>';
+        intentDiv.className = "Enemy-Intent Defend";
+        LogMessage(`Eenmy Gain ${GainBlock} block`, "Enemy");
+    }
+       
+    
 
     if (G.Player.HP <= 0) {
         LogMessage("you were Defeated!", "System");
+        alert("You Died!");
+        
+    //set player back one level if they die
+    if (State.UnlockedLevel > 1) {
+        State.UnlockedLevel -= 1;
+    }
         BackToMap();
     } else {
         //reset player block
@@ -303,11 +348,13 @@
     }
 }
 
+
+
 function BackToMap() {
     State.Screen = "Map";
     document.getElementById('Screen-Battle').style.display = 'none';
     const map = document.getElementById('Screen-Map');
-    map.style.display = ''; //set it to blank so css file takes over for .display = flex
+    map.style.display = ''; //set to blank so css file takes over for .display = flex
     RenderMap();
 }
 
@@ -352,16 +399,38 @@ function BackToMap() {
     // Helper: Damage Calculation
     function DamageOut(G, Base, Siphon = false) {
         let Dmg = Base;
+
+        //apply strength + weakness mods
         if (G.Player.Str) Dmg += G.Player.Str;
         if (G.Player.Weak) Dmg = Math.floor(Dmg * 0.75);
-        let Taken = Math.max(0, Dmg - (G.Enemy.Block || 0));
-        if (G.Enemy && G.Enemy.Vuln) Taken = Math.floor(Taken * 1.5);
-        if (Siphon) return { Dealt: Taken, Heal: Taken };
-        return Taken;
+
+        //apply vulnerability (to the target)
+        let FinalDamage = Dmg;
+        if (G.Enemy && G.Enemy.Vuln){
+            FinalDamage = Math.floor(FinalDamage*1.75)
+        }
+
+        //apply enemy block (absorb damage)
+        let Blocked = Math.min(G.Enemy.Block || 0, FinalDamage);
+        let UnBlocked = FinalDamage - Blocked;
+        G.Enemy.Block = Math.max(0, (G.Enemy.Block || 0)- FinalDamage);
+
+        //for siphon only heal for unblock damage
+        if (Siphon) return {Dealt: UnBlocked, Heal: UnBlocked};
+
+        return UnBlocked;
+        //let Taken = Math.max(0, Dmg - (G.Enemy.Block || 0));
+        //if (G.Enemy && G.Enemy.Vuln) Taken = Math.floor(Taken * 1.5);
+        //if (Siphon) return { Dealt: Taken, Heal: Taken };
+        //return Taken;
     }
 
     const btn = document.getElementById('EndTurnBtn');
     if (btn && !btn._bound) { btn.addEventListener('click', EnemyTurn); btn._bound = true; }
+
+    document.getElementById('BackToMapBtn').addEventListener('click', () => {
+        BackToMap();
+    });
 
     // Run map after page loads
     document.addEventListener("DOMContentLoaded", RenderMap);
