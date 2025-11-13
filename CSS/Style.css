@@ -322,4 +322,22 @@ cursor: pointer;
   100% { opacity: 0; transform: scale(0.9); }
 }
 
+.card-tooltip {
+  position: absolute;
+  background: black;
+  border: 2px solid #00ff00;
+  padding: 10px;
+  border-radius: 8px;
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  pointer-events: none;
+  white-space: normal;
+  width: 200px;
+  display: none;
+  z-index: 9999;
+  text-shadow: 0 0 6px #00ff00;
+  box-shadow: 0 0 12px #00ff00;
+}
+
 

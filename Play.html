@@ -112,6 +112,7 @@
 
     <!-- Hand of Cards-->
      <div id="Hand" class="hand"></div>
+     <div id="CardToolTip" class = "card-tooltip"></div>
 
     <!--End Turn button-->
      <button class = "End-Turn" id="EndTurnBtn"> End Turn</button>
@@ -264,8 +265,7 @@
     document.getElementById('WEAK').textContent = G.Player.Weak;
     document.getElementById('VULN').textContent = G.Player.Vuln;
     document.getElementById('Block').textContent = G.Player.Block;
-    //document.getElementById('Status').textContent =
-    //    `STR: ${G.Player.Str} | WEAK: ${G.Player.Weak} | VULN: ${G.Player.Vuln}`;
+
 
     const handDiv = document.getElementById('Hand');
     
@@ -280,6 +280,10 @@
         img.src = `Pictures/${Card.id}.jpg`;
         img.alt = Card.Name;
         img.className = 'card-art';
+
+        //tooltip - hover over card
+        cardDiv.onmousemove = (e) => showTooltip(e, Card);
+        cardDiv.onmouseleave = hideTooltip;
 
         //on click, play the card
         cardDiv.onclick = () => PlayCard(index);
@@ -338,6 +342,25 @@
         }
     }
 
+    function showTooltip(e, Card) {
+    const tip = document.getElementById('CardToolTip');
+    tip.style.display = 'block';
+
+    tip.innerHTML = `
+        <b>${Card.name}</b><br>
+        ${Card.text}<br><br>
+        <b>Cost:</b> ${Card.cost}
+    `;
+
+    tip.style.left = (e.pageX + 15) + "px";
+    tip.style.top = (e.pageY + 15) + "px";
+}
+
+function hideTooltip() {
+    const tip = document.getElementById('CardToolTip');
+    tip.style.display = 'none';
+}
+
     function EnemyTurn() {
 
     const Action = Math.random();
@@ -348,6 +371,10 @@
     if (Action < 0.60) //60% chance to attack player
     {
         let dmg = G.Enemy.ATK;
+        //if player has vulnerability
+        if (G.Player.Vuln > 0){
+            dmg = Math.floor (dmg * 1.5);
+        }
         const blockUsed = Math.min(G.Player.Block, dmg);
         dmg -= blockUsed;
         G.Player.Block -= blockUsed;
