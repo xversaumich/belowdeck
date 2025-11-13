@@ -99,6 +99,8 @@
                 <div>Level: <span id= "Level-num"></span></div>
                 <div>Enemy HP: <span id="Enemy-hp"></span></div>
                 <div>Block: <span id= "Enemy-Block"></span></div>
+                <div>vulnerability: <span id= "Enemy-Vulnerable"></span></div>
+                <div>Weakness: <span id= "Enemy-Weak"></span></div>
             </div>    
 
 
@@ -180,24 +182,58 @@
     const CARDS = [
         { id: 'Strike', name: "Strike", cost: 1, text: 'Deal 3 damage to enemy target', play: (G) => { G.Enemy.HP -= DamageOut(G, 3); } },
         { id: 'Reinforce', name: "Reinforce", cost: 1, text: 'Gain 5 Block', play: (G) => { G.Player.Block += 5; } },
-        { id: 'Smash', name: "Smash", cost: 3, text: 'Deal 6 (+2/STR) damage', play: (G) => { G.Enemy.HP -= DamageOut(G, 6 + 2 * G.Player.Str); } },
+        { id: 'Smash', name: "Smash", cost: 3, text: 'Deal 6 (+2/STR) damage', play: (G) => { 
+            const SmashDmg = DamageOut(G, 6 + 2 * G.Player.Str);
+            G.Enemy.HP -=  SmashDmg
+            LogMessage(`You deal ${SmashDmg} damage to the enemy!`,"Player");
+
+        }},
         { id: 'Siphon', name: "Siphon", cost: 2, text: 'Deal 3 damage, heal unblocked damage', play: (G) => {
             const Result = DamageOut(G, 3, true);
             G.Enemy.HP -= Result.Dealt;
             G.Player.HP = Math.min(G.Player.Max, G.Player.HP + Result.Heal);
             LogMessage(`> You siphoned ${Result.Dealt} HP from the enemy!`, 'green');
+        }},
+        {id: 'Feedback', name: "Feedback", cost: 2, text: 'Deal 4 damage, gain block equal to any unblocked damage', play: (G) => {
+            const dealt = DamageOut(G, 4, true);
+            G.Player.Block += dealt.Heal; //gain block equal to any unblocked damage
+            G.Enemy.HP -= dealt.Dealt;
+            LogMessage(`You dealt ${dealt.Dealt} damage and recieved ${dealt.Heal} Health.`,"Player")
+        }},
+        { id: 'Optimize', name: "Optimize", cost: 1, text: 'Gain 1 Strength', play:(G)=> {
+            G.Player.Str += 1;
+        }},
+        { id: 'Charge', name: "Charge", cost: 1, text: 'Gain 4 block, next turn gain 1 energy', play: (G) => {
+            G.Player.Block += 4;
+            G.Player.NextTurnEnergy = (G.Player.NextTurnEnergy || 0) + 1; //adds 1 energy to the players energy pool for the next turn.
+        }},
+        { id: 'Overclock', name: "overclock", cost: 2, text: 'Gain 2 strength, apply 2 vulnerable to self.', play: (G) => {
+            G.Player.Str += 2;
+            G.Player.Vuln += 2;
+        }},
+        { id: 'Melt', name: "Melt", cost: 2, text: 'Dea; 4 Damage, apply 2 weak to target.', play: (G) => {
+            const dmg = DamageOut (G, 4);
+            G.Enemy.HP -= dmg;
+            G.Enemy.Vuln = (G.Enemy.Vuln || 0) + 2;
+            LogMessage(`You Deal ${dmg} to the enemy! Enemy also gains 2 vulnerable.`, "Player");
+        }},
+        { id: 'Shock', name: "Shock", cost: 2, text: 'Deal 4 damage, apply 2 weak to target', play: (G) => {
+            const dmg = DamageOut (G, 4);
+            G.Enemy.HP -= dmg;
+            G.Enemy.Weak = (G.Enemy.Weak || 0) + 2;
+            LogMessage(`You Deal ${dmg} damage to the enemy! Enemy also gains 2 weakness.`,"Player");
         }}
     ];
 
     const ENEMIES = {
-        1: { Name: 'Grunt', HP: 18, ATK: 3, Block: 0 },
-        2: { Name: 'Slypher', HP: 25, ATK: 5, Block: 0 },
-        3: { Name: 'Savage', HP: 32, ATK: 7, Block: 0 },
-        4: { Name: 'Boss', HP: 41, ATK: 8, Block: 0 }
+        1: { Name: 'Grunt', HP: 18, ATK: 3, Block: 0, Vuln: 0, Weak: 0 },
+        2: { Name: 'Slypher', HP: 25, ATK: 5, Block: 0, Vuln: 0, Weak: 0  },
+        3: { Name: 'Savage', HP: 32, ATK: 7, Block: 0, Vul: 0, Weak: 0  },
+        4: { Name: 'Boss', HP: 41, ATK: 8, Block: 0, Vuln: 0, Weak: 0  }
     };
 
     const G = {
-        Player: { Max: 30, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3 },
+        Player: { Max: 30, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3, NextTurnEnergy: 0 },
         Enemy: null, Turn: 1, Deck: [], Hand: [], Discard: []
     };
 
@@ -219,6 +255,8 @@
     document.getElementById('Enemy-hp').textContent = G.Enemy.HP;
     document.getElementById('Enemy-Block').textContent = G.Enemy.Block;
     document.getElementById('Name').textContent = G.Enemy.Name;
+    document.getElementById('Enemy-Vulnerable').textContent = G.Enemy.Vuln;
+    document.getElementById('Enemy-Weak').textContent = G.Enemy.Weak;
     //Player Data
     document.getElementById('Player-hp').textContent = `${G.Player.HP}`;
     document.getElementById('Energy').textContent = G.Player.Energy;
@@ -274,8 +312,10 @@
         //for card play in combat log
         if (Card.id === 'Reinforce') LogMessage("User gained 5 Block", "Player");
         if (Card.id === 'Strike') LogMessage("You struck the enemy for 3 damage", "Player");
-        if (Card.id === 'Smash') LogMessage("You Smashed the enemy for big damage!", "Player");
-        //if (Card.id === 'Siphon') LogMessage(`You Siphoned ${Result.Dealt} HP from the enemy.`, 'green');
+        //if (Card.id === 'Smash') LogMessage("You Smashed the enemy for big damage!", "Player");
+        if (Card.id === 'Optimize') LogMessage("Your strength increased by +1!", "Player");
+        if (Card.id === 'Charge') LogMessage("You gain 4 block! Next turn start with +1 energy.", "player");
+        if (Card.id === 'Overclock') LogMessage("You gain 2 Strength! You also apply 2 vulnerable to self.");
 
         //spend energy and play selected card
         G.Player.Energy -= Card.cost;
@@ -343,7 +383,8 @@
         }
         G.Player.Block = 0;
         DrawHand(5);
-        G.Player.Energy = 3;
+        G.Player.Energy = 3 + (G.Player.NextTurnEnergy || 0);
+        G.Player.NextTurnEnergy = 0; //reset after using charge, which adds 1 energy to energy pool
         RenderBattle(State.LevelID);
     }
 }
@@ -361,7 +402,7 @@ function BackToMap() {
     function BuildDeck() {
          G.Deck = [];
         CARDS.forEach(card => {
-        // Add two copies of each card, or change the i < x number
+        // Add x amount of copies of each card, or change the i < x number
         for (let i = 0; i < 3; i++) {
              G.Deck.push({ ...card });
             }
@@ -396,7 +437,7 @@ function BackToMap() {
   }
 }
 
-    // Helper: Damage Calculation
+    //Damage Calculation
     function DamageOut(G, Base, Siphon = false) {
         let Dmg = Base;
 
