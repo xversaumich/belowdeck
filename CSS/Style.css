@@ -303,7 +303,7 @@ cursor: pointer;
   color: #00ff00;
   text-shadow: 0 0 8px #00ff00;
   font-size: 3rem;
-  animation: fadeOut 3s forwards;
+  animation: fadeOut 1.5s forwards;
 }
 
 .Enemy-Intent.Attack i {
