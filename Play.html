@@ -212,7 +212,7 @@
             G.Player.Str += 2;
             G.Player.Vuln += 2;
         }},
-        { id: 'Melt', name: "Melt", cost: 2, text: ' Deal 4 Damage, apply 2 Vulnerable to target.{Vulnerable: Target takes 75% more damage.}', play: (G) => {
+        { id: 'Melt', name: "Melt", cost: 2, text: ' Deal 4 Damage, apply 2 Vulnerable to target.{Vulnerable: Target takes 50% more damage.}', play: (G) => {
             const dmg = DamageOut (G, 4);
             G.Enemy.HP -= dmg;
             G.Enemy.Vuln = (G.Enemy.Vuln || 0) + 2;
@@ -227,10 +227,10 @@
     ];
 
     const ENEMIES = {
-        1: { Name: 'Grunt', HP: 18, ATK: 3, Block: 0, Vuln: 0, Weak: 0 },
-        2: { Name: 'Slypher', HP: 25, ATK: 5, Block: 0, Vuln: 0, Weak: 0  },
-        3: { Name: 'Savage', HP: 32, ATK: 7, Block: 0, Vul: 0, Weak: 0  },
-        4: { Name: 'Boss', HP: 41, ATK: 8, Block: 0, Vuln: 0, Weak: 0  }
+        1: { Name: 'Grunt', HP: 24, ATK: 3, Block: 0, Vuln: 0, Weak: 0 },
+        2: { Name: 'Slypher', HP: 30, ATK: 5, Block: 0, Vuln: 0, Weak: 0  },
+        3: { Name: 'Savage', HP: 40, ATK: 7, Block: 0, Vul: 0, Weak: 0  },
+        4: { Name: 'Boss', HP: 52, ATK: 8, Block: 0, Vuln: 0, Weak: 0  }
     };
 
     const G = {
@@ -250,7 +250,6 @@
     G.Player.Vuln = 0;
     G.Player.Block = 0;
     G.Player.Energy = 3;
-    //G.Player = { Max: 99, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3 };
     //load correct image for creature
     const EnemyImage = document.getElementById("EnemyImage");
     EnemyImage.src = `Pictures/Creature${Level}.png`;
@@ -494,7 +493,7 @@ function BackToMap() {
         //apply vulnerability (to the target)
         let FinalDamage = Dmg;
         if (G.Enemy && G.Enemy.Vuln){
-            FinalDamage = Math.floor(FinalDamage*1.75)
+            FinalDamage = Math.floor(FinalDamage*1.50)
         }
 
         //apply enemy block (absorb damage)
