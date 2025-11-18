@@ -90,47 +90,58 @@
 
 
      <!-- Battle -->
-     <div id = "Screen-Battle" style = "display:none">
-        <button class="Back-To-Map" id="BackToMapBtn"> < Map</button>
+<div id="Screen-Battle" style="display:none">
+
+    <button class="Back-To-Map" id="BackToMapBtn"> < Map</button>
+
+    <div class="Battle-Container">
+
+        <!-- LEFT SIDE: Battle UI -->
         <div class="Battle-Wrap">
-            <!-- Enemy Hud (top of screen)-->
+
+            <!-- Enemy Hud -->
             <div class="Enemy-Hud">
-                <div>Creature: <span id= "Name"></span></div>
-                <div>Level: <span id= "Level-num"></span></div>
+                <div>Creature: <span id="Name"></span></div>
+                <div>Level: <span id="Level-num"></span></div>
                 <div>Enemy HP: <span id="Enemy-hp"></span></div>
-                <div>Block: <span id= "Enemy-Block"></span></div>
-                <div>vulnerability: <span id= "Enemy-Vulnerable"></span></div>
-                <div>Weakness: <span id= "Enemy-Weak"></span></div>
-            </div>    
+                <div>Block: <span id="Enemy-Block"></span></div>
+                <div>vulnerability: <span id="Enemy-Vulnerable"></span></div>
+                <div>Weakness: <span id="Enemy-Weak"></span></div>
+            </div>
 
+            <!-- Enemy Intent -->
+            <div id="Enemy-Intent" class="Enemy-Intent"></div>
 
-    <!--Enemy Intent Display (attack/defend) -->
-    <div id= "Enemy-Intent" class="Enemy-Intent"></div>
+            <!-- Enemy art -->
+            <img id="EnemyImage" src="Pictures/Creature1.png" alt="enemy" class="enemy">
 
-    <!--Enemy art div area-->
-    <img id="EnemyImage" src="Pictures/Creature1.png" alt="enemy" class="enemy">
+            <!-- Hand of Cards -->
+            <div id="Hand" class="hand"></div>
+            <div id="CardToolTip" class="card-tooltip"></div>
 
-    <!-- Hand of Cards-->
-     <div id="Hand" class="hand"></div>
-     <div id="CardToolTip" class = "card-tooltip"></div>
+            <!-- End Turn button -->
+            <button class="End-Turn" id="EndTurnBtn"> End Turn</button>
 
-    <!--End Turn button-->
-     <button class = "End-Turn" id="EndTurnBtn"> End Turn</button>
         </div>
-        <!-- Player Hud (bottom of screen)-->
-      <div class="Player-Hud">
-        <div>Player HP: <span id= "Player-hp"></span></div>
+
+        <!-- RIGHT SIDE: Combat Log -->
+        <div id="CombatLog" class="Combat-Log"></div>
+
+    </div>
+
+    <!-- Player Hud -->
+    <div class="Player-Hud">
+        <div>Player HP: <span id="Player-hp"></span></div>
         <div>Energy: <span id="Energy"></span></div>
-        <div>Strength:  <span id="STR"></span>|
-             Weakness:  <span id="WEAK"></span>|
-             Vulnerable:  <span id="VULN"></span>|
-             Block: <span id="Block"></span>
+        <div>
+            Strength: <span id="STR"></span> |
+            Weakness: <span id="WEAK"></span> |
+            Vulnerable: <span id="VULN"></span> |
+            Block: <span id="Block"></span>
         </div>
-      </div>
-     <div id="CombatLog" class="Combat-Log"></div> <!--Combat Log Div-->
-	 </div>
-     
+    </div>
 
+</div>
 
      <script>
     // === SCRIPT STARTS HERE === //

@@ -132,8 +132,56 @@ h4 {
   width: 4px; height: 30px; background: repeating-linear-gradient(#7a7a7a 0 4px, transparent 4px 8px);
 }
 
+.Battle-Container {
+    display: flex;
+    justify-content: center;
+    gap: 40px;        /* space between battle area + log */
+    width: 100%;
+}
+
 .Battle-Wrap{
-  margin: 20px auto; width: 940px; border: 3px dashed #00ff00; border-radius: 14px;  padding: 18px;
+  position: relative;
+  margin: 20px auto; 
+  width: 940px; 
+  border: 3px dashed #00ff00; 
+  border-radius: 14px;  
+  padding: 18px;
+}
+
+.Combat-Log {
+    position: absolute;
+    top: 140px;
+    right: 60px;
+    width: 320px;
+    height: 480px;
+    border: 2px solid #00ff00;
+    border-radius: 10px;
+    padding: 12px;
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+    white-space: pre-line;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.Combat-Log p {
+  margin: 4px 0;
+  opacity: 0; /*combat log message first appears invsible*/
+  transform: translateY(4px); /*message slowly slides up*/
+  animation: logFadeIn 0.6s ease forwards;
+}
+
+.Combat-Log .Player {
+  color: #00ff00;
+    text-shadow: 0 0 06px #00ff00;
+}
+
+.Combat-Log .Enemy {
+  color: #ff3333;
+}
+
+.Combat-Log .System{
+  color: #00bfff;
 }
 
 .Hud {
@@ -207,42 +255,6 @@ h4 {
   animation: pulseGlow 1.2s infinite alternate;
 }
 
-
-.Combat-Log {
-  width: 400px;
-  height: 320px;
-  margin: 20px auto;
-  border: 2px solid #00ff00;
-  border-radius: 8px;
-  padding: 10px;
-  font-family: 'Courier New', monospace; 
-  font-size:  15px;
-  color: #00ff00;
-  background: 0 0 15px rgba(0, 225, blue, 0.3);
-  white-space: normal;     /* allows wrapping */
-  word-wrap: break-word;   /* breaks long lines */
-  overflow-wrap: break-word;
-}
-
-.Combat-Log p {
-  margin: 4px 0;
-  opacity: 0; /*combat log message first appears invsible*/
-  transform: translateY(4px); /*message slowly slides up*/
-  animation: logFadeIn 0.6s ease forwards;
-}
-
-.Combat-Log .Player {
-  color: #00ff00;
-    text-shadow: 0 0 06px #00ff00;
-}
-
-.Combat-Log .Enemy {
-  color: #ff3333;
-}
-
-.Combat-Log .System{
-  color: #00bfff;
-}
 
 @keyframes pulseGlow {
   0%   { box-shadow: 0 0 10px #00ff00; }
@@ -323,7 +335,7 @@ cursor: pointer;
 }
 
 .card-tooltip {
-  position: absolute;
+  position: fixed;
   background: black;
   border: 2px solid #00ff00;
   padding: 10px;
