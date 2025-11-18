@@ -261,12 +261,79 @@
     G.Player.Vuln = 0;
     G.Player.Block = 0;
     G.Player.Energy = 3;
+    G.Enemy.Intent = null;
     //load correct image for creature
     const EnemyImage = document.getElementById("EnemyImage");
     EnemyImage.src = `Pictures/Creature${Level}.png`;
     BuildDeck();
     DrawHand(5);
     RenderBattle(Level);
+}
+
+function RollEnemyIntent(){
+    const Roll = Math.floor(Math.random() * 101); //rolles a number between 0 and 100
+    let intent = {};
+
+    if (Roll <= 60){
+        //if roll is less than 60 = enemy attacks
+        intent.type = "Attack";
+        intent.value = G.Enemy.ATK; //default attack value saved in const ENEMIES
+    }
+
+    else if (Roll <=90){
+        //if roll is between 60 and 90 = enemy defends
+        intent.type = "Block";
+        intent.value = Math.floor(G.Enemy.ATK /2) + 2; //EnemyBlock = enemys attack/2 = result + 2;
+    }
+    else if (Roll <=95){
+        //if roll is between 90 and 95 = enemy applies weak to player
+        intent.type = "Weak";
+        intent.value = 2;
+    }
+    else {
+        //if rolls i higher than 95 = enemy applies vulnerable
+        intent.type = "Vulnerable";
+        intent.value = 2;
+    }
+
+    G.Enemy.Intent = intent;
+    DisplayEnemyIntent(intent);
+    Logintent(intent);
+
+}
+
+function DisplayEnemyIntent(intent){
+    const box = document.getElementById("Enemy-Intent");
+
+    if (!intent){
+        box.innerHTML = "";
+        return;
+    }
+
+    let icon = "";
+    if (intent.type === "Attack") icon = `<i class="bi bi-fire intent-attack"></i>`;
+    if (intent.type === "Block") icon = `<i class="bi bi-shield-plus intent-block"></i>`; 
+    if (intent.type === "Weak") icon = `<i class="bi bi-droplet-half intent-weak"></i>`; 
+    if (intent.type === "Vulnerable") icon = `<i class="bi bi-shield-exclamation intent-vuln"></i>`;
+
+    box.innerHTML = icon;
+}
+
+function Logintent(intent){
+    if (!intent){
+        return;
+    }
+
+    let Msg = "Enemy Intends to ";
+
+    switch (intent.type){
+        case "Attack": Msg += `Attack you for ${intent.value} Damage!`; break;
+        case "Block": Msg += `Gain ${intent.value} Block!`; break;
+        case "Weak": Msg += `Apply ${intent.value - 1} Weakness to you!`; break;
+        case "Vulnerable": Msg += `Apply ${intent.value - 1} Vulnerable to you!`; break;
+
+    }
+     LogMessage(Msg, "Intent");
 }
 
 
@@ -383,44 +450,54 @@ function hideTooltip() {
 
     function EnemyTurn() {
 
-    const Action = Math.random();
-    const intentDiv = document.getElementById("Enemy-Intent");
-     intentDiv.innerHTML = "";
+    const intent = G.Enemy.Intent; //Hold enemy's intent
+    const intentDiv = document.getElementById("Enemy-Intent"); //grab element "enemy-intent" and attribute it to intentdiv
+    intentDiv.innerHTML = ""; //clear intentdiv
+     // --- APPLY ENEMY ACTION BASED ON INTENT ---
+    if (intent) {
 
-    //let action 0.x be the percent chance for attack
-    if (Action < 0.60) //60% chance to attack player
-    {
-        let dmg = G.Enemy.ATK;
-        //if player has vulnerability
-        if (G.Player.Vuln > 0){
-            dmg = Math.floor (dmg* 1.5);
+        if (intent.type === "Attack") {
+            let dmg = intent.value;
+
+            // Apply player weakness (player takes more damage)
+            if (G.Player.Vuln > 0) dmg = Math.floor(dmg * 1.5);
+
+            // Block interaction
+            const blocked = Math.min(G.Player.Block, dmg);
+            G.Player.Block -= blocked;
+            dmg -= blocked;
+
+            G.Player.HP -= dmg;
+
+            LogMessage(`Enemy attacked you for ${dmg} damage`, "Enemy");
         }
-        if (G.Enemy.Weak >0) {
-            dmg = Math.floor (dmg * 0.75)
+
+        else if (intent.type === "Block") {
+            G.Enemy.Block = (G.Enemy.Block || 0) + intent.value;
+            LogMessage(`Enemy gained ${intent.value} Block`, "Enemy");
         }
-        const blockUsed = Math.min(G.Player.Block, dmg);
-        dmg -= blockUsed;
-        G.Player.Block -= blockUsed;
-        G.Player.HP -= dmg;
-        intentDiv.innerHTML = '<i class="bi bi-fire"></i>';
-        intentDiv.className = "Enemy-Intent Attack";
-        LogMessage(`Enemy attacked you for ${dmg} damage`, "Enemy");
-    }
-    else{ //40% chance to defend
-        const GainBlock = Math.floor(G.Enemy.ATK /2) + 2; //EnemyBlock = enemys attack/2 = result + 2
-        G.Enemy.Block = (G.Enemy.Block || 0) + GainBlock;
-        intentDiv.innerHTML = '<i class="bi bi-shield-plus"></i>';
-        intentDiv.className = "Enemy-Intent Defend";
-        LogMessage(`Eenmy Gain ${GainBlock} block`, "Enemy");
+
+        else if (intent.type === "Weak") {
+            G.Player.Weak += intent.value;
+            LogMessage(`Enemy applied ${intent.value} Weak to you`, "Enemy");
+        }
+
+        else if (intent.type === "Vulnerable") {
+            G.Player.Vuln += intent.value;
+            LogMessage(`Enemy applied ${intent.value} Vulnerable to you`, "Enemy");
+        }
     }
 
+    
+    //reduce player debuffs during enemy's turn
     if (G.Player.Vuln > 0) G.Player.Vuln--;
     if (G.Player.Weak > 0) G.Player.Weak--;
         
-
+    //check to see if player has died
     if (G.Player.HP <= 0) {
         LogMessage("you were Defeated!", "System");
         alert("You Died!");
+        G.Player.HP = 30;
         
     //set player back one level if they die
     if (State.UnlockedLevel > 1) {
@@ -443,6 +520,9 @@ function hideTooltip() {
         //reduce enemy weak/vuln by 1
         if (G.Enemy.Vuln > 0) G.Enemy.Vuln--;
         if (G.Enemy.Weak > 0) G.Enemy.Weak--;
+
+        //roll intent for next turn
+        RollEnemyIntent();
 }
 
 

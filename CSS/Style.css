@@ -184,6 +184,11 @@ h4 {
   color: #00bfff;
 }
 
+.Combat-Log .Intent{
+  color: #FFD447;
+  text-shadow: 0 0 10px #FFD447;
+}
+
 .Hud {
   display: flex; gap: 30px; color: #00ff00; font-family: 'Courier New', Courier, monospace; margin-bottom: 10px;
 }
@@ -302,31 +307,37 @@ cursor: pointer;
 
 .Enemy-Intent{
   text-align: center;
-  color: #00ff00;
+  /*color: #00ff00;
   font-family: 'Courier New', monospace;
-  text-shadow: 0 0 8px #00ff00;
+  text-shadow: 0 0 8px #00ff00; */
   font-size: 3rem;
   margin-bottom: 8px;
   height: 40px;
 }
-
-
-.Enemy-Intent i {
-  color: #00ff00;
-  text-shadow: 0 0 8px #00ff00;
-  font-size: 3rem;
-  animation: fadeOut 1.5s forwards;
+.intent-attack {
+    color: #ff4d4d;           /* red */
+    text-shadow: 0 0 10px #ff4d4d;
+    animation: fadeOut 1.5s forwards;
 }
 
-.Enemy-Intent.Attack i {
-  color: #ff4040;
-  text-shadow: 0 0 8px #ff4040;
+.intent-block {
+    color: #3db6ff;           /* blue */
+    text-shadow: 0 0 10px #3db6ff;
+    animation: fadeOut 1.5s forwards;
 }
 
-.Enemy-Intent.Defend i {
-  color: #00ffff;
-  text-shadow: 0 0 8px #00ffff;
+.intent-weak {
+    color: #ffe066;           /* yellow */
+    text-shadow: 0 0 10px #ffe066;
+    animation: fadeOut 1.5s forwards;
 }
+
+.intent-vuln {
+    color: #00ff00;           /* green  */
+    text-shadow: 0 0 10px #00ff00;
+    animation: fadeOut 1.5s forwards;
+}
+
 
 @keyframes fadeOut {
   0%   { opacity: 1; transform: scale(1); }
