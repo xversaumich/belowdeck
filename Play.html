@@ -151,6 +151,17 @@
         LevelID: null
     };
 
+    //create background song
+    const BGM = new Audio("Audio/Background1.wav");
+    BGM.loop = true;
+    BGM.volume = 0.40;
+
+    document.addEventListener("click", StartBGM, { once: true });
+
+    function StartBGM() {
+    BGM.play();
+    }
+
     function LogMessage(text, type = "System"){
         const logDiv = document.getElementById("CombatLog");
         const p = document.createElement("p");
@@ -192,16 +203,18 @@
     document.addEventListener("DOMContentLoaded", RenderMap);
 
     const CARDS = [
-        { id: 'Strike', name: "Strike", cost: 1, text: 'Deal 3 damage to enemy target', play: (G) => { G.Enemy.HP -= DamageOut(G, 3); } },
-        { id: 'Reinforce', name: "Reinforce", cost: 1, text: 'Gain 5 Block. {Block: Block x amount of incoming damage for the enemys next turn.}', play: (G) => { G.Player.Block += 5; } },
+        { id: 'Strike', name: "Strike", cost: 1, text: 'Deal 3 damage to enemy target', play: (G) => { G.Enemy.HP -= DamageOut(G, 3);PlaySound("Audio/Strike1.wav"); } },
+        { id: 'Reinforce', name: "Reinforce", cost: 1, text: 'Gain 5 Block. {Block: Block x amount of incoming damage for the enemys next turn.}', play: (G) => { G.Player.Block += 5; PlaySound("Audio/Reinforce1.wav"); } },
         { id: 'Smash', name: "Smash", cost: 3, text: 'Deal 6 damage (+2 damage per Strength)', play: (G) => { 
             const SmashDmg = DamageOut(G, 6 + 2 * G.Player.Str);
-            G.Enemy.HP -=  SmashDmg
+            G.Enemy.HP -=  SmashDmg;
+            PlaySound("Audio/Smash1.wav");
             LogMessage(`[Smash] You deal ${SmashDmg} damage to the enemy!`,"Player");
 
         }},
-        { id: 'Siphon', name: "Siphon", cost: 2, text: '[Siphon] Deal 3 damage, heal unblocked damage', play: (G) => {
+        { id: 'Siphon', name: "Siphon", cost: 2, text: 'Deal 3 damage, heal unblocked damage', play: (G) => {
             const Result = DamageOut(G, 3, true);
+            PlaySound("Audio/Siphon1.wav");
             G.Enemy.HP -= Result.Dealt;
             G.Player.HP = Math.min(G.Player.Max, G.Player.HP + Result.Heal);
             LogMessage(`[Siphon] You siphoned ${Result.Dealt} HP from the enemy!`, 'green');
@@ -210,29 +223,35 @@
             const dealt = DamageOut(G, 4, true);
             G.Player.Block += dealt.Heal; //gain block equal to any unblocked damage
             G.Enemy.HP -= dealt.Dealt;
-            LogMessage(`[Feedback] You dealt ${dealt.Dealt} damage and recieved ${dealt.Heal} Health.`,"Player")
+            PlaySound("Audio/Feedback1.wav");
+            LogMessage(`[Feedback] You dealt ${dealt.Dealt} damage and recieved ${dealt.Heal} Block.`,"Player")
         }},
         { id: 'Optimize', name: "Optimize", cost: 1, text: 'Gain 1 Strength. {Strength: 1 strength = +1 damage.}', play:(G)=> {
             G.Player.Str += 1;
+            PlaySound("Audio/Optimize1.wav");
         }},
         { id: 'Charge', name: "Charge", cost: 1, text: 'Gain 4 block, next turn gain 1 energy', play: (G) => {
             G.Player.Block += 4;
+            PlaySound("Audio/Charge1.wav");
             G.Player.NextTurnEnergy = (G.Player.NextTurnEnergy || 0) + 1; //adds 1 energy to the players energy pool for the next turn.
         }},
         { id: 'Overclock', name: "overclock", cost: 2, text: 'Gain 2 strength, apply 2 vulnerable to self.{Strength: 1 strength = +1 damage.} {Vulnerable: Enemy deals 50% more damage.}', play: (G) => {
             G.Player.Str += 2;
             G.Player.Vuln += 2;
+            PlaySound("Audio/OverClock1.wav");
         }},
         { id: 'Melt', name: "Melt", cost: 2, text: ' Deal 4 Damage, apply 2 Vulnerable to target.{Vulnerable: Target takes 50% more damage.}', play: (G) => {
             const dmg = DamageOut (G, 4);
             G.Enemy.HP -= dmg;
             G.Enemy.Vuln = (G.Enemy.Vuln || 0) + 2;
+            PlaySound("Audio/Melt1.wav");
             LogMessage(`[Melt] You Deal ${dmg} to the enemy! Enemy also gains 2 vulnerable.`, "Player");
         }},
         { id: 'Shock', name: "Shock", cost: 2, text: 'Deal 4 damage, apply 2 weak to target {Weak: Enemy deals 25% less damage }', play: (G) => {
             const dmg = DamageOut (G, 4);
             G.Enemy.HP -= dmg;
             G.Enemy.Weak = (G.Enemy.Weak || 0) + 2;
+            PlaySound("Audio/Shock1.wav");
             LogMessage(`[Shock] You Deal ${dmg} damage to the enemy! Enemy also gains 2 weakness.`,"Player");
         }}
     ];
@@ -245,7 +264,7 @@
     };
 
     const G = {
-        Player: { Max: 30, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3, NextTurnEnergy: 0 },
+        Player: { Max: 99, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3, NextTurnEnergy: 0 },
         Enemy: null, Turn: 1, Deck: [], Hand: [], Discard: []
     };
 
@@ -268,6 +287,9 @@
     BuildDeck();
     DrawHand(5);
     RenderBattle(Level);
+
+    RollEnemyIntent();        // Shows the FIRST intent immediately
+    //Logintent(G.Enemy.Intent);
 }
 
 function RollEnemyIntent(){
@@ -336,6 +358,18 @@ function Logintent(intent){
      LogMessage(Msg, "Intent");
 }
 
+function PlaySound (src){
+    const Sound = new Audio(src);
+    Sound.volume = 0.7;
+    Sound.play();
+}
+
+function PlayCardFlipSound (src){
+    const Sound = new Audio(src);
+    Sound.volume = 1.00;
+    Sound.play();
+}
+
 
     function RenderBattle(Level) {
     //Enemy Data
@@ -373,7 +407,10 @@ function Logintent(intent){
         cardDiv.onmouseleave = hideTooltip;
 
         //on click, play the card
-        cardDiv.onclick = () => PlayCard(index);
+        cardDiv.onclick = () => {
+            PlayCardFlipSound("Audio/card flip.wav")
+            PlayCard(index);
+        }
 
         cardDiv.appendChild(img);
         handDiv.appendChild(cardDiv);
@@ -389,6 +426,9 @@ function Logintent(intent){
         }
 }
     document.getElementById('EndTurnBtn').addEventListener('click', EnemyTurn);
+    document.getElementById('EndTurnBtn').addEventListener('click', () => {
+        PlayCardFlipSound("Audio/card flip.wav");
+    });
 
     function PlayCard(index){
 
@@ -402,7 +442,7 @@ function Logintent(intent){
 
         //for card play in combat log
         if (Card.id === 'Reinforce') LogMessage("[Reinforce] User gained 5 Block", "Player");
-        if (Card.id === 'Strike') LogMessage("[Strike] You struck the enemy for 3 damage", "Player");
+        if (Card.id === 'Strike') LogMessage(`[Strike] You struck the enemy for ${3 + G.Player.Str} damage`, "Player");
         if (Card.id === 'Optimize') LogMessage("[Optimize] Your strength increased by +1!", "Player");
         if (Card.id === 'Charge') LogMessage("[Charge]You gain 4 block! Next turn start with +1 energy.", "player");
         if (Card.id === 'Overclock') LogMessage("[Overclock] You gain 2 Strength! You also apply 2 vulnerable to self.", "Player");
@@ -458,6 +498,7 @@ function hideTooltip() {
 
         if (intent.type === "Attack") {
             let dmg = intent.value;
+            PlaySound("Audio/AlienRoar1.wav");
 
             // Apply player weakness (player takes more damage)
             if (G.Player.Vuln > 0) dmg = Math.floor(dmg * 1.5);
@@ -474,17 +515,19 @@ function hideTooltip() {
 
         else if (intent.type === "Block") {
             G.Enemy.Block = (G.Enemy.Block || 0) + intent.value;
+            PlaySound("Audio/AlienShield1.wav");
             LogMessage(`Enemy gained ${intent.value} Block`, "Enemy");
         }
 
         else if (intent.type === "Weak") {
             G.Player.Weak += intent.value;
-            LogMessage(`Enemy applied ${intent.value} Weak to you`, "Enemy");
+            LogMessage(`Enemy applied ${intent.value -1} Weak to you`, "Enemy");
+            PlaySound("Audio/Weak1.wav");
         }
 
         else if (intent.type === "Vulnerable") {
             G.Player.Vuln += intent.value;
-            LogMessage(`Enemy applied ${intent.value} Vulnerable to you`, "Enemy");
+            LogMessage(`Enemy applied ${intent.value -1} Vulnerable to you`, "Enemy");
         }
     }
 
