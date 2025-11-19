@@ -152,15 +152,38 @@
     };
 
     //create background song
-    const BGM = new Audio("Audio/Background1.wav");
-    BGM.loop = true;
-    BGM.volume = 0.40;
+    const BGM = {
+    1: new Audio("Audio/level 1.wav"),
+    2: new Audio("Audio/level 2.wav"),
+    3: new Audio("Audio/level 3.wav"),
+    4: new Audio("Audio/level 4.wav"),
+    };
 
-    document.addEventListener("click", StartBGM, { once: true });
+    //set background music volume level
+    Object.values(BGM).forEach(audio =>{
+        audio.loop = true;
+        audio.volume = 0.40;
+    });
+       
+    //function to start BGM for each level
+    function StartBGMForLevel(LevelID){
+        //first stop all existing tracks
+        //Object.values(BGM).forEach(audio => {
+        //    audio.pause();
+        //    audio.currentTime = 0;
+       // });
 
-    function StartBGM() {
-    BGM.play();
-    //Ecco: The Tides of Time Music (Genesis) - Sea of Darkness is the background music - from youtube
+        //play music for correct level
+        if (BGM[LevelID]) {
+            BGM[LevelID].play()
+            console.log(`Playing music for Level: ${State.LevelID} currently.`)
+        };
+
+        //wait for first click on page
+        document.addEventListener("click", () => {
+            StartBGMForLevel(1);
+
+        }, {once: true});
     }
 
     function LogMessage(text, type = "System"){
@@ -199,6 +222,13 @@
         const log = document.getElementById('CombatLog');
         if (log) log.innerHTML = '';
         InitBattle(LevelID);
+        //first stop all existing tracks
+        Object.values(BGM).forEach(audio => {
+            audio.pause();
+            //audio.currentTime = 0;
+        });
+        StartBGMForLevel(State.LevelID); //play background music
+        console.log (`The current levelID is ${State.LevelID}.`)
     }
 
     document.addEventListener("DOMContentLoaded", RenderMap);
@@ -207,7 +237,7 @@
         { id: 'Strike', name: "Strike", cost: 1, text: 'Deal 3 damage to enemy target', play: (G) => { G.Enemy.HP -= DamageOut(G, 3);PlaySound("Audio/Strike1.wav"); } },
         { id: 'Reinforce', name: "Reinforce", cost: 1, text: 'Gain 5 Block. {Block: Block x amount of incoming damage for the enemys next turn.}', play: (G) => { G.Player.Block += 5; PlaySound("Audio/Reinforce1.wav"); } },
         { id: 'Smash', name: "Smash", cost: 3, text: 'Deal 6 damage (+2 damage per Strength)', play: (G) => { 
-            const SmashDmg = DamageOut(G, 6 + 2 * G.Player.Str);
+            const SmashDmg = DamageOut(G, 6 + 2 );
             G.Enemy.HP -=  SmashDmg;
             PlaySound("Audio/Smash1.wav");
             LogMessage(`[Smash] You deal ${SmashDmg} damage to the enemy!`,"Player");
@@ -218,6 +248,9 @@
             PlaySound("Audio/Siphon1.wav");
             G.Enemy.HP -= Result.Dealt;
             G.Player.HP = Math.min(G.Player.Max, G.Player.HP + Result.Heal);
+            if (Result.Dealt >0){
+                PlaySound("Audio/regain health.wav");
+            }
             LogMessage(`[Siphon] You siphoned ${Result.Dealt} HP from the enemy!`, 'green');
         }},
         {id: 'Feedback', name: "Feedback", cost: 2, text: ' Deal 4 damage, gain block equal to any unblocked damage', play: (G) => {
@@ -260,7 +293,7 @@
     const ENEMIES = {
         1: { Name: 'Grunt', HP: 24, ATK: 3, Block: 0, Vuln: 0, Weak: 0 },
         2: { Name: 'Slypher', HP: 30, ATK: 5, Block: 0, Vuln: 0, Weak: 0  },
-        3: { Name: 'Savage', HP: 40, ATK: 7, Block: 0, Vul: 0, Weak: 0  },
+        3: { Name: 'Savage', HP: 40, ATK: 7, Block: 0, Vuln: 0, Weak: 0  },
         4: { Name: 'Boss', HP: 52, ATK: 8, Block: 0, Vuln: 0, Weak: 0  }
     };
 
@@ -499,18 +532,35 @@ function hideTooltip() {
 
         if (intent.type === "Attack") {
             let dmg = intent.value;
-            PlaySound("Audio/AlienRoar1.wav");
+                if (State.LevelID === 1){
+                    PlaySound("Audio/creature 1.wav")
+                }
+                else if (State.LevelID === 2){
+                    PlaySound("Audio/creature 2.wav")
+                }
+                else if (State.LevelID === 3){
+                    PlaySound("Audio/creature 3.wav")
+                }
+                else if (State.LevelID === 4){
+                    PlaySound("Audio/creature 4.wav")
+                }
+            //PlaySound("Audio/AlienRoar1.wav");
 
             // Apply player weakness (player takes more damage)
             if (G.Player.Vuln > 0) dmg = Math.floor(dmg * 1.5);
 
             // Block interaction
             const blocked = Math.min(G.Player.Block, dmg);
+            if (blocked > 0){
+                PlaySound("Audio/player blocked hit.wav");
+            }
             G.Player.Block -= blocked;
             dmg -= blocked;
 
             G.Player.HP -= dmg;
-
+            if (dmg >0){
+                PlaySound("Audio/player takes damage.wav")
+            }
             LogMessage(`Enemy attacked you for ${dmg} damage`, "Enemy");
         }
 
@@ -573,6 +623,14 @@ function hideTooltip() {
 
 function BackToMap() {
     State.Screen = "Map";
+    BGM[1].pause();
+    BGM[1].currentTime = 0;
+    BGM[2].pause();
+    BGM[2].currentTime = 0;
+    BGM[3].pause();
+    BGM[3].currentTime = 0;
+    BGM[4].pause();
+    BGM[4].currentTime = 0;
     document.getElementById('Screen-Battle').style.display = 'none';
     const map = document.getElementById('Screen-Map');
     map.style.display = ''; //set to blank so css file takes over for .display = flex
@@ -633,7 +691,14 @@ function BackToMap() {
 
         //apply enemy block (absorb damage)
         let Blocked = Math.min(G.Enemy.Block || 0, FinalDamage);
+        if (Blocked > 0){
+            PlaySound("Audio/enemy blocked hit.wav")
+        }
         let UnBlocked = FinalDamage - Blocked;
+        if (UnBlocked >0){
+            PlaySound("Audio/enemy takes damage.wav");
+            console.log("enemy takes damage.wav has been played since enemy could not block dmg.")
+        }
         G.Enemy.Block = Math.max(0, (G.Enemy.Block || 0)- FinalDamage);
 
         //for siphon only heal for unblock damage
