@@ -69,8 +69,8 @@
             <ul class="navbar-nav">
                 <li class="nav-item"><a class="nav-link" href="Home.html">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="About Us.html">About Us</a></li>
-                <li class= "nav-item"><a class="nav-link active" href="Play.html">PLAY ></a></li>
                 <li class="nav-item"><a class="nav-link" href="HowToPlay.html">How to Play</a></li>
+                <li class= "nav-item"><a class="nav-link active" href="Play.html">PLAY ></a></li>
             </ul>
         </div>
     </nav>
@@ -237,7 +237,7 @@
         { id: 'Strike', name: "Strike", cost: 1, text: 'Deal 3 damage to enemy target', play: (G) => { G.Enemy.HP -= DamageOut(G, 3);PlaySound("Audio/Strike1.wav"); } },
         { id: 'Reinforce', name: "Reinforce", cost: 1, text: 'Gain 5 Block. {Block: Block x amount of incoming damage for the enemys next turn.}', play: (G) => { G.Player.Block += 5; PlaySound("Audio/Reinforce1.wav"); } },
         { id: 'Smash', name: "Smash", cost: 3, text: 'Deal 6 damage (+2 damage per Strength)', play: (G) => { 
-            const SmashDmg = DamageOut(G, 6 + 2 );
+            const SmashDmg = DamageOut(G, 6 + (2 * G.Player.Str));
             G.Enemy.HP -=  SmashDmg;
             PlaySound("Audio/Smash1.wav");
             LogMessage(`[Smash] You deal ${SmashDmg} damage to the enemy!`,"Player");
@@ -547,7 +547,16 @@ function hideTooltip() {
             //PlaySound("Audio/AlienRoar1.wav");
 
             // Apply player weakness (player takes more damage)
-            if (G.Player.Vuln > 0) dmg = Math.floor(dmg * 1.5);
+            if (G.Player.Vuln > 0) {
+                dmg = Math.floor(dmg * 1.5);
+                console.log(`User had vuln, user takes ${dmg} damage.`);
+            }
+
+            // Weakness-- modify damage if weakness of enemy is above 0
+            if (G.Enemy.Weak >0){
+                dmg = Math.floor(dmg *0.75);
+                console.log(`Enemy had Weakness, Enemy deals ${dmg} damage.`);
+            }
 
             // Block interaction
             const blocked = Math.min(G.Player.Block, dmg);
@@ -681,12 +690,16 @@ function BackToMap() {
 
         //apply strength + weakness mods
         if (G.Player.Str) Dmg += G.Player.Str;
-        if (G.Player.Weak) Dmg = Math.floor(Dmg * 0.75);
+        if (G.Player.Weak >0) {
+            Dmg = Math.floor(Dmg * 0.75);
+            console.log(`You had weakness, so you should have dealt ${Dmg} damage.`);
+        }
 
         //apply vulnerability (to the target)
         let FinalDamage = Dmg;
         if (G.Enemy && G.Enemy.Vuln){
             FinalDamage = Math.floor(FinalDamage*1.50)
+            console.log(`Enemy had vuln, so you did ${FinalDamage} damage to them.`);
         }
 
         //apply enemy block (absorb damage)
