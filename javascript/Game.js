@@ -1,0 +1,589 @@
+
+    // === SCRIPT STARTS HERE === //
+    const State = {
+        UnlockedLevel: 1,
+        Screen: "Map",
+        LevelID: null
+    };
+
+    //create background song
+    const BGM = {
+    1: new Audio("Audio/level 1.wav"),
+    2: new Audio("Audio/level 2.wav"),
+    3: new Audio("Audio/level 3.wav"),
+    4: new Audio("Audio/level 4.wav"),
+    };
+
+    //set background music volume level
+    Object.values(BGM).forEach(audio =>{
+        audio.loop = true;
+        audio.volume = 0.40;
+    });
+       
+    //function to start BGM for each level
+    function StartBGMForLevel(LevelID){
+        //first stop all existing tracks
+        //Object.values(BGM).forEach(audio => {
+        //    audio.pause();
+        //    audio.currentTime = 0;
+       // });
+
+        //play music for correct level
+        if (BGM[LevelID]) {
+            BGM[LevelID].play()
+            console.log(`Playing music for Level: ${State.LevelID} currently.`)
+        };
+
+        //wait for first click on page
+        document.addEventListener("click", () => {
+            StartBGMForLevel(1);
+
+        }, {once: true});
+    }
+
+    function LogMessage(text, type = "System"){
+        const logDiv = document.getElementById("CombatLog");
+        const p = document.createElement("p");
+        p.textContent="> " + text;
+        p.classList.add(type);
+        logDiv.appendChild(p);
+
+         // Keep only latest 5 messages
+        const messages = logDiv.querySelectorAll('p');
+        if (messages.length > 5) messages[0].remove();
+
+        //auto-scroll to latest entry in combat log
+        logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function RenderMap() {
+        document.querySelectorAll('.level').forEach(Element => {
+            const ID = +Element.dataset.id;
+            //Unlock/Lock level logic
+            Element.classList.toggle('unlocked', ID <= State.UnlockedLevel);
+            Element.classList.toggle('locked', ID > State.UnlockedLevel);
+            //Click handler
+            Element.onclick = (ID <= State.UnlockedLevel) ? () => StartBattle(ID) : null;
+        });
+    }
+
+    function StartBattle(LevelID) {
+        State.Screen = "Battle";
+        State.LevelID = LevelID;
+        document.getElementById('Screen-Map').style.display = 'none';
+        document.getElementById('Screen-Battle').style.display = '';
+        //alert("Starting Battle Level " + LevelID);
+        //clear the combat log
+        const log = document.getElementById('CombatLog');
+        if (log) log.innerHTML = '';
+        InitBattle(LevelID);
+        //first stop all existing tracks
+        Object.values(BGM).forEach(audio => {
+            audio.pause();
+            //audio.currentTime = 0;
+        });
+        StartBGMForLevel(State.LevelID); //play background music
+        console.log (`The current levelID is ${State.LevelID}.`)
+    }
+
+
+    const CARDS = [
+        { id: 'Strike', name: "Strike", cost: 1, text: 'Deal 3 damage to enemy target', play: (G) => { G.Enemy.HP -= DamageOut(G, 3);PlaySound("Audio/Strike1.wav"); } },
+        { id: 'Reinforce', name: "Reinforce", cost: 1, text: 'Gain 5 Block. {Block: Block x amount of incoming damage for the enemys next turn.}', play: (G) => { G.Player.Block += 5; PlaySound("Audio/Reinforce1.wav"); } },
+        { id: 'Smash', name: "Smash", cost: 3, text: 'Deal 6 damage (+2 damage per Strength)', play: (G) => { 
+            const SmashDmg = DamageOut(G, 6 + (2 * G.Player.Str));
+            G.Enemy.HP -=  SmashDmg;
+            PlaySound("Audio/Smash1.wav");
+            LogMessage(`[Smash] You deal ${SmashDmg} damage to the enemy!`,"Player");
+
+        }},
+        { id: 'Siphon', name: "Siphon", cost: 2, text: 'Deal 3 damage, heal unblocked damage', play: (G) => {
+            const Result = DamageOut(G, 3, true);
+            PlaySound("Audio/Siphon1.wav");
+            G.Enemy.HP -= Result.Dealt;
+            G.Player.HP = Math.min(G.Player.Max, G.Player.HP + Result.Heal);
+            if (Result.Dealt >0){
+                PlaySound("Audio/regain health.wav");
+            }
+            LogMessage(`[Siphon] You siphoned ${Result.Dealt} HP from the enemy!`, 'green');
+        }},
+        {id: 'Feedback', name: "Feedback", cost: 2, text: ' Deal 4 damage, gain block equal to any unblocked damage', play: (G) => {
+            const dealt = DamageOut(G, 4, true);
+            G.Player.Block += dealt.Heal; //gain block equal to any unblocked damage
+            G.Enemy.HP -= dealt.Dealt;
+            PlaySound("Audio/Feedback1.wav");
+            LogMessage(`[Feedback] You dealt ${dealt.Dealt} damage and recieved ${dealt.Heal} Block.`,"Player")
+        }},
+        { id: 'Optimize', name: "Optimize", cost: 1, text: 'Gain 1 Strength. {Strength: 1 strength = +1 damage.}', play:(G)=> {
+            G.Player.Str += 1;
+            PlaySound("Audio/Optimize1.wav");
+        }},
+        { id: 'Charge', name: "Charge", cost: 1, text: 'Gain 4 block, next turn gain 1 energy', play: (G) => {
+            G.Player.Block += 4;
+            PlaySound("Audio/Charge1.wav");
+            G.Player.NextTurnEnergy = (G.Player.NextTurnEnergy || 0) + 1; //adds 1 energy to the players energy pool for the next turn.
+        }},
+        { id: 'Overclock', name: "overclock", cost: 2, text: 'Gain 2 strength, apply 2 vulnerable to self.{Strength: 1 strength = +1 damage.} {Vulnerable: Enemy deals 50% more damage.}', play: (G) => {
+            G.Player.Str += 2;
+            G.Player.Vuln += 2;
+            PlaySound("Audio/OverClock1.wav");
+        }},
+        { id: 'Melt', name: "Melt", cost: 2, text: ' Deal 4 Damage, apply 2 Vulnerable to target.{Vulnerable: Target takes 50% more damage.}', play: (G) => {
+            const dmg = DamageOut (G, 4);
+            G.Enemy.HP -= dmg;
+            G.Enemy.Vuln = (G.Enemy.Vuln || 0) + 2;
+            PlaySound("Audio/Melt1.wav");
+            LogMessage(`[Melt] You Deal ${dmg} to the enemy! Enemy also gains 2 vulnerable.`, "Player");
+        }},
+        { id: 'Shock', name: "Shock", cost: 2, text: 'Deal 4 damage, apply 2 weak to target {Weak: Enemy deals 25% less damage }', play: (G) => {
+            const dmg = DamageOut (G, 4);
+            G.Enemy.HP -= dmg;
+            G.Enemy.Weak = (G.Enemy.Weak || 0) + 2;
+            PlaySound("Audio/Shock1.wav");
+            LogMessage(`[Shock] You Deal ${dmg} damage to the enemy! Enemy also gains 2 weakness.`,"Player");
+        }}
+    ];
+
+    const ENEMIES = {
+        1: { Name: 'Grunt', HP: 24, ATK: 3, Block: 0, Vuln: 0, Weak: 0 },
+        2: { Name: 'Slypher', HP: 30, ATK: 5, Block: 0, Vuln: 0, Weak: 0  },
+        3: { Name: 'Savage', HP: 40, ATK: 7, Block: 0, Vuln: 0, Weak: 0  },
+        4: { Name: 'Boss', HP: 52, ATK: 8, Block: 0, Vuln: 0, Weak: 0  }
+    };
+
+    const G = {
+        Player: { Max: 99, HP: 30, Str: 0, Weak: 0, Vuln: 0, Block: 0, Energy: 3, NextTurnEnergy: 0 },
+        Enemy: null, Turn: 1, Deck: [], Hand: [], Discard: []
+    };
+
+    function InitBattle(Level) {
+    G.Enemy = { ...ENEMIES[Level] };
+    //initiallize health in beginning but not after that
+    if (!G.Player.HP){
+        G.Player.Max = 99;
+        G.Player.HP = 30;
+    }
+    G.Player.Str = 0;
+    G.Player.Weak = 0;
+    G.Player.Vuln = 0;
+    G.Player.Block = 0;
+    G.Player.Energy = 3;
+    G.Enemy.Intent = null;
+    //load correct image for creature
+    const EnemyImage = document.getElementById("EnemyImage");
+    EnemyImage.src = `Pictures/Creature${Level}.png`;
+    BuildDeck();
+    DrawHand(5);
+    RenderBattle(Level);
+
+    RollEnemyIntent();        // Shows the FIRST intent immediately
+    //Logintent(G.Enemy.Intent);
+}
+
+function RollEnemyIntent(){
+    const Roll = Math.floor(Math.random() * 101); //rolles a number between 0 and 100
+    let intent = {};
+
+    if (Roll <= 60){
+        //if roll is less than 60 = enemy attacks
+        intent.type = "Attack";
+        intent.value = G.Enemy.ATK; //default attack value saved in const ENEMIES
+    }
+
+    else if (Roll <=90){
+        //if roll is between 60 and 90 = enemy defends
+        intent.type = "Block";
+        intent.value = Math.floor(G.Enemy.ATK /2) + 2; //EnemyBlock = enemys attack/2 = result + 2;
+    }
+    else if (Roll <=95){
+        //if roll is between 90 and 95 = enemy applies weak to player
+        intent.type = "Weak";
+        intent.value = 2;
+    }
+    else {
+        //if rolls i higher than 95 = enemy applies vulnerable
+        intent.type = "Vulnerable";
+        intent.value = 2;
+    }
+
+    G.Enemy.Intent = intent;
+    DisplayEnemyIntent(intent);
+    Logintent(intent);
+
+}
+
+function DisplayEnemyIntent(intent){
+    const box = document.getElementById("Enemy-Intent");
+
+    if (!intent){
+        box.innerHTML = "";
+        return;
+    }
+
+    let icon = "";
+    if (intent.type === "Attack") icon = `<i class="bi bi-fire intent-attack"></i>`;
+    if (intent.type === "Block") icon = `<i class="bi bi-shield-plus intent-block"></i>`; 
+    if (intent.type === "Weak") icon = `<i class="bi bi-droplet-half intent-weak"></i>`; 
+    if (intent.type === "Vulnerable") icon = `<i class="bi bi-shield-exclamation intent-vuln"></i>`;
+
+    box.innerHTML = icon;
+}
+
+function Logintent(intent){
+    if (!intent){
+        return;
+    }
+
+    let Msg = "Enemy Intends to ";
+
+    switch (intent.type){
+        case "Attack": Msg += `Attack you for ${intent.value} Damage!`; break;
+        case "Block": Msg += `Gain ${intent.value} Block!`; break;
+        case "Weak": Msg += `Apply ${intent.value - 1} Weakness to you!`; break;
+        case "Vulnerable": Msg += `Apply ${intent.value - 1} Vulnerable to you!`; break;
+
+    }
+     LogMessage(Msg, "Intent");
+}
+
+function PlaySound (src){
+    const Sound = new Audio(src);
+    Sound.volume = 0.7;
+    Sound.play();
+}
+
+function PlayCardFlipSound (src){
+    const Sound = new Audio(src);
+    Sound.volume = 1.00;
+    Sound.play();
+}
+
+
+    function RenderBattle(Level) {
+    //Enemy Data
+    document.getElementById('Level-num').textContent = Level;
+    document.getElementById('Enemy-hp').textContent = G.Enemy.HP;
+    document.getElementById('Enemy-Block').textContent = G.Enemy.Block;
+    document.getElementById('Name').textContent = G.Enemy.Name;
+    document.getElementById('Enemy-Vulnerable').textContent = G.Enemy.Vuln;
+    document.getElementById('Enemy-Weak').textContent = G.Enemy.Weak;
+    //Player Data
+    document.getElementById('Player-hp').textContent = `${G.Player.HP}`;
+    document.getElementById('Energy').textContent = G.Player.Energy;
+    document.getElementById('STR').textContent = G.Player.Str;
+    document.getElementById('WEAK').textContent = G.Player.Weak;
+    document.getElementById('VULN').textContent = G.Player.Vuln;
+    document.getElementById('Block').textContent = G.Player.Block;
+
+
+    const handDiv = document.getElementById('Hand');
+    
+    handDiv.innerHTML = '';
+
+    G.Hand.forEach((Card, index) => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'Card';
+
+        //Card Artwork
+        const img = document.createElement('img');
+        img.src = `Pictures/${Card.id}.jpg`;
+        img.alt = Card.Name;
+        img.className = 'card-art';
+
+        //tooltip - hover over card
+        cardDiv.onmousemove = (e) => showTooltip(e, Card);
+        cardDiv.onmouseleave = hideTooltip;
+
+        //on click, play the card
+        cardDiv.onclick = () => {
+            PlayCardFlipSound("Audio/card flip.wav")
+            PlayCard(index);
+        }
+
+        cardDiv.appendChild(img);
+        handDiv.appendChild(cardDiv);
+
+
+    });
+    const EndTurnButton = document.querySelector('.End-Turn');
+
+        if (G.Player.Energy <= 0) {
+             EndTurnButton.classList.add('Highlight');
+        } else {
+        EndTurnButton.classList.remove('Highlight');
+        }
+}
+    document.getElementById('EndTurnBtn').addEventListener('click', EnemyTurn);
+    document.getElementById('EndTurnBtn').addEventListener('click', () => {
+        PlayCardFlipSound("Audio/card flip.wav");
+    });
+
+    function PlayCard(index){
+
+        const Card = G.Hand[index];
+
+        //check for enough energy to play card
+        if (G.Player.Energy < Card.cost){
+            alert("Not Enough Energy!");
+            return;
+        }
+
+        //for card play in combat log
+        if (Card.id === 'Reinforce') LogMessage("[Reinforce] User gained 5 Block", "Player");
+        if (Card.id === 'Strike') LogMessage(`[Strike] You struck the enemy for ${3 + G.Player.Str} damage`, "Player");
+        if (Card.id === 'Optimize') LogMessage("[Optimize] Your strength increased by +1!", "Player");
+        if (Card.id === 'Charge') LogMessage("[Charge]You gain 4 block! Next turn start with +1 energy.", "player");
+        if (Card.id === 'Overclock') LogMessage("[Overclock] You gain 2 Strength! You also apply 2 vulnerable to self.", "Player");
+
+        //spend energy and play selected card
+        G.Player.Energy -= Card.cost;
+        Card.play(G); //calls the cards effect from the CARDS array
+
+        //remove card from current hand after its played
+        const playedCard = G.Hand.splice(index, 1)[0];
+        G.Discard.push(playedCard); //move used card into the discard pile
+
+        //Re-render (recall renderbattle function)
+        RenderBattle(State.LevelID);
+
+        //check if enemy died from last card played
+        if (G.Enemy.HP <= 0){
+            LogMessage("Enemy defeated!", "System");
+            alert("Enemy Defeated!")
+            if (State.LevelID < 4) {
+                State.UnlockedLevel = Math.max(State.UnlockedLevel, State.LevelID + 1);
+            }
+            BackToMap();
+        }
+    }
+
+    function showTooltip(e, Card) {
+    const tip = document.getElementById('CardToolTip');
+    tip.style.display = 'block';
+
+    tip.innerHTML = `
+        <b>${Card.name}</b><br>
+        ${Card.text}<br><br>
+        <b>Cost:</b> ${Card.cost}
+    `;
+
+    tip.style.left = (e.pageX + 15) + "px";
+    tip.style.top = (e.pageY + 15) + "px";
+}
+
+function hideTooltip() {
+    const tip = document.getElementById('CardToolTip');
+    tip.style.display = 'none';
+}
+
+    function EnemyTurn() {
+
+    const intent = G.Enemy.Intent; //Hold enemy's intent
+    const intentDiv = document.getElementById("Enemy-Intent"); //grab element "enemy-intent" and attribute it to intentdiv
+    intentDiv.innerHTML = ""; //clear intentdiv
+     // --- APPLY ENEMY ACTION BASED ON INTENT ---
+    if (intent) {
+
+        if (intent.type === "Attack") {
+            let dmg = intent.value;
+                if (State.LevelID === 1){
+                    PlaySound("Audio/creature 1.wav")
+                }
+                else if (State.LevelID === 2){
+                    PlaySound("Audio/creature 2.wav")
+                }
+                else if (State.LevelID === 3){
+                    PlaySound("Audio/creature 3.wav")
+                }
+                else if (State.LevelID === 4){
+                    PlaySound("Audio/creature 4.wav")
+                }
+            //PlaySound("Audio/AlienRoar1.wav");
+
+            // Apply player weakness (player takes more damage)
+            if (G.Player.Vuln > 0) {
+                dmg = Math.floor(dmg * 1.5);
+                console.log(`User had vuln, user takes ${dmg} damage.`);
+            }
+
+            // Weakness-- modify damage if weakness of enemy is above 0
+            if (G.Enemy.Weak >0){
+                dmg = Math.floor(dmg *0.75);
+                console.log(`Enemy had Weakness, Enemy deals ${dmg} damage.`);
+            }
+
+            // Block interaction
+            const blocked = Math.min(G.Player.Block, dmg);
+            if (blocked > 0){
+                PlaySound("Audio/player blocked hit.wav");
+            }
+            G.Player.Block -= blocked;
+            dmg -= blocked;
+
+            G.Player.HP -= dmg;
+            if (dmg >0){
+                PlaySound("Audio/player takes damage.wav")
+            }
+            LogMessage(`Enemy attacked you for ${dmg} damage`, "Enemy");
+        }
+
+        else if (intent.type === "Block") {
+            G.Enemy.Block = (G.Enemy.Block || 0) + intent.value;
+            PlaySound("Audio/AlienShield1.wav");
+            LogMessage(`Enemy gained ${intent.value} Block`, "Enemy");
+        }
+
+        else if (intent.type === "Weak") {
+            G.Player.Weak += intent.value;
+            LogMessage(`Enemy applied ${intent.value -1} Weak to you`, "Enemy");
+            PlaySound("Audio/Weak1.wav");
+        }
+
+        else if (intent.type === "Vulnerable") {
+            G.Player.Vuln += intent.value;
+            LogMessage(`Enemy applied ${intent.value -1} Vulnerable to you`, "Enemy");
+        }
+    }
+
+    
+    //reduce player debuffs during enemy's turn
+    if (G.Player.Vuln > 0) G.Player.Vuln--;
+    if (G.Player.Weak > 0) G.Player.Weak--;
+        
+    //check to see if player has died
+    if (G.Player.HP <= 0) {
+        LogMessage("you were Defeated!", "System");
+        alert("You Died!");
+        G.Player.HP = 30;
+        
+    //set player back one level if they die
+    if (State.UnlockedLevel > 1) {
+        State.UnlockedLevel -= 1;
+    }
+        BackToMap();
+    } else {
+        //reset player block
+        if(G.Player.Block >0){
+            LogMessage("Your Block has faded.", "System");
+        }
+        G.Player.Block = 0;
+        DrawHand(5);
+        G.Player.Energy = 3 + (G.Player.NextTurnEnergy || 0);
+        G.Player.NextTurnEnergy = 0; //reset after using charge, which adds 1 energy to energy pool
+        RenderBattle(State.LevelID);
+    }
+
+    
+        //reduce enemy weak/vuln by 1
+        if (G.Enemy.Vuln > 0) G.Enemy.Vuln--;
+        if (G.Enemy.Weak > 0) G.Enemy.Weak--;
+
+        //roll intent for next turn
+        RollEnemyIntent();
+}
+
+
+
+function BackToMap() {
+    State.Screen = "Map";
+    BGM[1].pause();
+    BGM[1].currentTime = 0;
+    BGM[2].pause();
+    BGM[2].currentTime = 0;
+    BGM[3].pause();
+    BGM[3].currentTime = 0;
+    BGM[4].pause();
+    BGM[4].currentTime = 0;
+    document.getElementById('Screen-Battle').style.display = 'none';
+    const map = document.getElementById('Screen-Map');
+    map.style.display = ''; //set to blank so css file takes over for .display = flex
+    RenderMap();
+}
+
+    function BuildDeck() {
+         G.Deck = [];
+        CARDS.forEach(card => {
+        // Add x amount of copies of each card, or change the i < x number
+        for (let i = 0; i < 3; i++) {
+             G.Deck.push({ ...card });
+            }
+        });
+
+        // Shuffle the deck (Fisher–Yates shuffle)
+    for (let i = G.Deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [G.Deck[i], G.Deck[j]] = [G.Deck[j], G.Deck[i]];
+        }
+    }
+
+    function DrawHand(target = 5) {
+  // keep current cards, only fill up to target
+  while (G.Hand.length < target) {
+
+    // If deck is empty, reshuffle discard
+    if (G.Deck.length === 0) {
+      if (G.Discard.length === 0) break; // no cards to draw at all
+      G.Deck = G.Discard.sort(() => Math.random() - 0.5);
+      G.Discard = [];
+      LogMessage("Reshuffling discard pile into deck.", "system");
+    }
+
+    const drawnCard = G.Deck.pop();
+    if (drawnCard && drawnCard.id) {
+      G.Hand.push(drawnCard);
+    } else {
+      console.warn("Invalid card drawn:", drawnCard);
+      break;
+    }
+  }
+}
+
+    //Damage Calculation
+    function DamageOut(G, Base, Siphon = false) {
+        let Dmg = Base;
+
+        //apply strength + weakness mods
+        if (G.Player.Str) Dmg += G.Player.Str;
+        if (G.Player.Weak >0) {
+            Dmg = Math.floor(Dmg * 0.75);
+            console.log(`You had weakness, so you should have dealt ${Dmg} damage.`);
+        }
+
+        //apply vulnerability (to the target)
+        let FinalDamage = Dmg;
+        if (G.Enemy && G.Enemy.Vuln){
+            FinalDamage = Math.floor(FinalDamage*1.50)
+            console.log(`Enemy had vuln, so you did ${FinalDamage} damage to them.`);
+        }
+
+        //apply enemy block (absorb damage)
+        let Blocked = Math.min(G.Enemy.Block || 0, FinalDamage);
+        if (Blocked > 0){
+            PlaySound("Audio/enemy blocked hit.wav")
+        }
+        let UnBlocked = FinalDamage - Blocked;
+        if (UnBlocked >0){
+            PlaySound("Audio/enemy takes damage.wav");
+            console.log("enemy takes damage.wav has been played since enemy could not block dmg.")
+        }
+        G.Enemy.Block = Math.max(0, (G.Enemy.Block || 0)- FinalDamage);
+
+        //for siphon only heal for unblock damage
+        if (Siphon) return {Dealt: UnBlocked, Heal: UnBlocked};
+
+        return UnBlocked;
+        //let Taken = Math.max(0, Dmg - (G.Enemy.Block || 0));
+        //if (G.Enemy && G.Enemy.Vuln) Taken = Math.floor(Taken * 1.5);
+        //if (Siphon) return { Dealt: Taken, Heal: Taken };
+        //return Taken;
+    }
+
+    const btn = document.getElementById('EndTurnBtn');
+    if (btn && !btn._bound) { btn.addEventListener('click', EnemyTurn); btn._bound = true; }
+
+    document.getElementById('BackToMapBtn').addEventListener('click', () => {
+        BackToMap();
+    });
+
+    // Run map after page loads
+    document.addEventListener("DOMContentLoaded", RenderMap);
