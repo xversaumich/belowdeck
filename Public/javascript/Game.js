@@ -1,5 +1,4 @@
 
-    // === SCRIPT STARTS HERE === //
     const State = {
         UnlockedLevel: 1,
         Screen: "Map",
@@ -13,6 +12,7 @@
     3: new Audio("Audio/level 3.wav"),
     4: new Audio("Audio/level 4.wav"),
     };
+
 
     //set background music volume level
     Object.values(BGM).forEach(audio =>{
@@ -343,6 +343,9 @@ function PlayCardFlipSound (src){
         const playedCard = G.Hand.splice(index, 1)[0];
         G.Discard.push(playedCard); //move used card into the discard pile
 
+        //server request
+        saveMessageToServer(`Player played card: ${Card.name}`);
+
         //Re-render (recall renderbattle function)
         RenderBattle(State.LevelID);
 
@@ -353,6 +356,9 @@ function PlayCardFlipSound (src){
             if (State.LevelID < 4) {
                 State.UnlockedLevel = Math.max(State.UnlockedLevel, State.LevelID + 1);
             }
+
+            //save progress to server
+            SaveProgress();
             BackToMap();
         }
     }
@@ -585,5 +591,61 @@ function BackToMap() {
         BackToMap();
     });
 
+    //AJAX calls
+    fetch ("api/save-progress", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            level: State.UnlockedLevel,
+            HP: G.Player.HP
+        })
+    });
+
+    async function SavePRogress() {
+        const data = {
+            level: State.UnlockedLevel,
+            HP: G.Player.HP
+        };
+
+        try {
+            await fetch("/api/save-progress", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(data)
+            });
+            console.log ("Progress Saved: ", data); 
+        }
+        catch (err){
+            console.error("Failed to save progress: ", err);
+        }
+    }
+
+    async function LoadProgress() {
+        const res = await fetch ("/api/load-progress");
+        const save = await res.json();
+
+        State.UnlockedLevel = save.level;
+        G.Player.HP = save.HP;
+        RenderMap();
+    }
+
+
+    function saveMessageToServer(msg) {
+    fetch("/api/save-message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg })
+    })
+    .then(res => res.json())
+    .then(reply => {
+        console.log("Server saved message:", reply);
+    });
+    }
+
+
     // Run map after page loads
-    document.addEventListener("DOMContentLoaded", RenderMap);
+    document.addEventListener("DOMContentLoaded", async () => {
+    await LoadProgress();   // load data from server
+    RenderMap();            // update map based on save
+});
+
