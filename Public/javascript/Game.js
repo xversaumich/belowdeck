@@ -359,6 +359,7 @@ function PlayCardFlipSound (src){
 
             //save progress to server
             SaveProgress();
+            LoadProgress();
             BackToMap();
         }
     }
@@ -601,7 +602,7 @@ function BackToMap() {
         })
     });
 
-    async function SavePRogress() {
+    async function SaveProgress() {
         const data = {
             level: State.UnlockedLevel,
             HP: G.Player.HP
@@ -626,7 +627,7 @@ function BackToMap() {
 
         State.UnlockedLevel = save.level;
         G.Player.HP = save.HP;
-        RenderMap();
+        //RenderMap();
     }
 
 

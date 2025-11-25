@@ -3,7 +3,7 @@ const path = require("path");
 const app = express();
 
 app.use(express.json()); //for JSON POST requests
-app.use(express.static(path.join(__dirname, "public")));  //Serve everything in the project folder from /public
+app.use(express.static(path.join(__dirname, "Public")));  //Serve everything in the project folder from /public
 
 //Save player progress
 
@@ -12,7 +12,7 @@ let PlayerSave = {
     HP: 30
 };
 
-app.post("api/save-progress", (req, res) => {
+app.post("/api/save-progress", (req, res) => {
     PlayerSave = req.body;
     console.log("Saved: ", PlayerSave);
     res.json({status: "ok"});
@@ -29,19 +29,19 @@ app.get("/api/load-progress", (req, res) => {
 //Save combat messages
 let SavedMessages = [];
 
-app.post("api/save-message", (req, res) => {
+app.post("/api/save-message", (req, res) => {
     SavedMessages.push(req.body.message);
     res.json({status: "ok"});
 });
 
-app.get("api/messages", (req, res) => {
+app.get("/api/messages", (req, res) => {
     res.json(SavedMessages);
 });
 //end of save combat messages
 
 //serve index.html as homepage
 app.get("/", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
+    res.sendFile(path.join(__dirname, "Public", "index.html"));
 });
 
 
